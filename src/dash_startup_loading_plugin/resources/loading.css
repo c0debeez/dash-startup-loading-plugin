@@ -19,22 +19,96 @@
 .dash-loading__content {
     display: grid;
     place-items: center;
+    color: var(--dash-loading-loader-color, #1677ff);
 }
 
-.dash-loading__spinner {
-    box-sizing: border-box;
-    display: block;
+.dash-loading__content--loading-ui {
+    width: 100%;
+}
+
+.dash-loading__spinner-region {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 4 / 3;
+    flex: 0 0 auto;
+    container-type: inline-size;
+}
+
+@media (min-width: 640px) {
+    .dash-loading__spinner-region { width: calc((100% - 1px) / 2); }
+}
+
+@media (min-width: 768px) {
+    .dash-loading__spinner-region { width: calc((100% - 2px) / 3); }
+}
+
+@media (min-width: 1024px) {
+    .dash-loading__spinner-region { width: calc((100% - 3px) / 4); }
+}
+
+html[data-dash-loading-theme="dark"] .dash-loading__content {
+    color: var(--dash-loading-loader-dark-color, #4096ff);
+}
+
+.dash-loading__ring {
+    display: inline-block;
     width: var(--dash-loading-size, 28px);
     height: var(--dash-loading-size, 28px);
-    border: var(--dash-loading-stroke, 3px) solid transparent;
-    border-top-color: currentcolor;
-    border-radius: 50%;
-    animation: dash-loading-spin 0.8s linear infinite;
 }
+
+.dash-loading__loading-ui {
+    display: inline-block;
+    width: var(--dash-loading-size, 28px);
+    height: var(--dash-loading-size, 28px);
+}
+
+.dash-loading__ring {
+    stroke-width: var(--dash-loading-stroke, 2px);
+    animation: dash-loading-ui-ring-spin 1s linear infinite;
+}
+
+.dash-loading__loading-ui[data-dash-loading-ui^="text-"] {
+    width: auto;
+    min-width: 6em;
+    height: auto;
+}
+
+.dash-loading__antd-spinner,
+.dash-loading__antd-dot {
+    position: relative;
+    display: inline-block;
+    width: var(--dash-loading-size, 28px);
+    height: var(--dash-loading-size, 28px);
+}
+
+.dash-loading__antd-dot {
+    transform: rotate(45deg);
+    animation: dash-loading-antd-rotate 1.2s linear infinite;
+}
+
+.dash-loading__antd-dot i {
+    position: absolute;
+    display: block;
+    width: calc((var(--dash-loading-size, 28px) - 2px) / 2);
+    height: calc((var(--dash-loading-size, 28px) - 2px) / 2);
+    background: currentcolor;
+    border-radius: 100%;
+    transform: scale(0.75);
+    opacity: 0.3;
+    animation: dash-loading-antd-move 1s linear infinite alternate;
+}
+
+.dash-loading__antd-dot i:nth-child(1) { top: 0; left: 0; animation-delay: 0s; }
+.dash-loading__antd-dot i:nth-child(2) { top: 0; right: 0; animation-delay: 0.4s; }
+.dash-loading__antd-dot i:nth-child(3) { right: 0; bottom: 0; animation-delay: 0.8s; }
+.dash-loading__antd-dot i:nth-child(4) { bottom: 0; left: 0; animation-delay: 1.2s; }
 
 .dash-loading--hide-default ~ #react-entry-point ._dash-loading,
 .dash-loading--hide-default ~ * ._dash-loading {
-    display: none;
+    display: none !important;
 }
 
 html[data-dash-loading-theme="light"] .dash-loading {
@@ -44,7 +118,7 @@ html[data-dash-loading-theme="light"] .dash-loading {
 
 html[data-dash-loading-theme="dark"] .dash-loading {
     color: var(--dash-loading-dark-color, #4096ff);
-    background: var(--dash-loading-dark-background, #0f0f0f);
+    background: var(--dash-loading-dark-background, #121212);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -52,13 +126,24 @@ html[data-dash-loading-theme="dark"] .dash-loading {
         transition: none;
     }
 
-    .dash-loading__spinner {
+    .dash-loading__ring {
+        animation-duration: 1.6s;
+    }
+
+    .dash-loading__antd-dot,
+    .dash-loading__antd-dot i {
         animation-duration: 1.6s;
     }
 }
 
-@keyframes dash-loading-spin {
-    to {
-        transform: rotate(360deg);
-    }
+@keyframes dash-loading-ui-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes dash-loading-antd-rotate {
+    to { transform: rotate(405deg); }
+}
+
+@keyframes dash-loading-antd-move {
+    to { opacity: 1; }
 }

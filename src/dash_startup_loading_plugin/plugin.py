@@ -9,7 +9,6 @@ from dataclasses import asdict, dataclass, fields, replace
 from functools import lru_cache
 from html import escape
 from importlib.resources import files
-from importlib.util import find_spec
 from threading import RLock
 from typing import Any
 
@@ -19,9 +18,56 @@ _OVERLAY_MARKER = "data-dash-loading"
 _BODY_PATTERN = re.compile(r"<body(?:\s[^>]*)?>", flags=re.IGNORECASE)
 _HEAD_END_PATTERN = re.compile(r"</head\s*>", flags=re.IGNORECASE)
 _CONFIG_LOCK = RLock()
-_ANTD_LIGHT_BACKGROUND = "#ffffff"
-_ANTD_DARK_BACKGROUND = "#121212"
-_mantine_prerender_registered = False
+
+_LOADING_UI_LOADERS = frozenset({
+    "accordion-loader",
+    "analyzing-image",
+    "arc",
+    "bars",
+    "bobbing-dots",
+    "bouncing-dots",
+    "classic",
+    "clock-ring",
+    "comet-spinner",
+    "concentric-ring",
+    "conveyor-loop",
+    "dash-ring",
+    "diamond",
+    "dots",
+    "dots-ring",
+    "dual-arc",
+    "fade-arc",
+    "infinity",
+    "infinity-square-snake",
+    "infinity-track",
+    "morphing-infinity",
+    "orbit-ring",
+    "pulsating-dots",
+    "pulse",
+    "pulse-dot",
+    "quarter-ring",
+    "ring",
+    "ripple",
+    "satellite-ring",
+    "skeleton",
+    "spiral",
+    "spokes",
+    "square-accordion",
+    "square-grid",
+    "square-snake",
+    "swirling",
+    "symmetric-wave",
+    "terminal",
+    "text-blink",
+    "text-dots",
+    "text-shimmer",
+    "text-shimmer-wave",
+    "triple-dot-spinner",
+    "twin-orbit",
+    "typing",
+    "wandering-eyes",
+    "wave",
+})
 
 
 @dataclass(frozen=True)
@@ -43,13 +89,16 @@ class StartupLoadingConfig:
     fade_duration_ms: int = 160
     z_index: int = 9999
     background: str = "#ffffff"
-    dark_background: str = "#0f0f0f"
-    color: str = "#1677ff"
-    dark_color: str = "#4096ff"
+    dark_background: str = "#121212"
+    color: str | None = None
+    dark_color: str | None = None
+    loader_color: str | None = None
+    loader_dark_color: str | None = None
     theme_mode: str = "auto"
     dash_theme_component_id: str | None = None
-    spinner_size_px: int = 28
-    spinner_stroke_px: int = 3
+    loader: str = "antd"
+    spinner_size_px: int | None = 28
+    spinner_stroke_px: int = 2
     hide_default_loading: bool = True
     custom_loader_html: str | None = None
 
@@ -82,17 +131,25 @@ def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
         raise ValueError("timeout_ms must be None or greater than or equal to zero")
     if config.theme_mode not in {"auto", "light", "dark"}:
         raise ValueError("theme_mode must be 'auto', 'light', or 'dark'")
+    if config.loader not in _LOADING_UI_LOADERS | {"antd"}:
+        raise ValueError("loader must be a Loading UI loader name or 'antd'")
+    for name in ("color", "dark_color", "loader_color", "loader_dark_color"):
+        value = getattr(config, name)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            raise ValueError(f"{name} must be None or a non-empty CSS color")
     if config.dash_theme_component_id is not None and (
         not isinstance(config.dash_theme_component_id, str) or not config.dash_theme_component_id.strip()
     ):
         raise ValueError("dash_theme_component_id must be None or a non-empty string")
-    for name in ("minimum_display_ms", "fade_duration_ms", "spinner_size_px", "spinner_stroke_px"):
+    if config.spinner_size_px is not None and config.spinner_size_px < 0:
+        raise ValueError("spinner_size_px must be greater than or equal to zero")
+    for name in ("minimum_display_ms", "fade_duration_ms", "spinner_stroke_px"):
         if getattr(config, name) < 0:
             raise ValueError(f"{name} must be greater than or equal to zero")
     return config
 
 
-def configure(**changes: Any) -> StartupLoadingConfig:
+def setup(**changes: Any) -> StartupLoadingConfig:
     """Update the process-wide plugin configuration.
 
     Call this before creating ``dash.Dash``. The Dash hooks registry is
@@ -111,63 +168,6 @@ def configure(**changes: Any) -> StartupLoadingConfig:
     with _CONFIG_LOCK:
         _config = _validate(replace(_config, **changes))
         return _config
-
-
-def configure_dmc(**changes: Any) -> StartupLoadingConfig:
-    """Configure seamless startup colors for Dash Mantine Components.
-
-    Dash Mantine Components remains an optional dependency. This helper reads
-    its active default theme and registers its pre-render color-scheme hook.
-    Explicit keyword arguments override all integration defaults.
-    """
-
-    try:
-        import dash_mantine_components as dmc
-    except ImportError as error:
-        raise RuntimeError("configure_dmc requires dash-mantine-components>=2.6.0") from error
-
-    pre_render_color_scheme = getattr(dmc, "pre_render_color_scheme", None)
-    if pre_render_color_scheme is None:
-        raise RuntimeError("configure_dmc requires dash-mantine-components>=2.6.0")
-
-    theme = dmc.DEFAULT_THEME
-    changes.setdefault("background", theme["white"])
-    changes.setdefault("dark_background", theme["colors"]["dark"][7])
-    changes.setdefault("pending_selector", None)
-
-    global _mantine_prerender_registered
-    with _CONFIG_LOCK:
-        if not _mantine_prerender_registered:
-            pre_render_color_scheme()
-            _mantine_prerender_registered = True
-
-    return configure(**changes)
-
-
-def configure_dac(**changes: Any) -> StartupLoadingConfig:
-    """Configure startup colors for Dash Ant Design.
-
-    Explicit keyword arguments override the integration defaults, including
-    ``background`` and ``dark_background`` when the application's Ant Design
-    theme customizes its light or dark background token.
-    """
-
-    changes.setdefault("background", _ANTD_LIGHT_BACKGROUND)
-    changes.setdefault("dark_background", _ANTD_DARK_BACKGROUND)
-    return configure(**changes)
-
-
-def configure_fac(**changes: Any) -> StartupLoadingConfig:
-    """Configure startup colors for feffery-antd-components.
-
-    Explicit keyword arguments override the integration defaults, including
-    ``background`` and ``dark_background`` when the application's
-    ``AntdConfigProvider`` customizes its light or dark theme tokens.
-    """
-
-    changes.setdefault("background", _ANTD_LIGHT_BACKGROUND)
-    changes.setdefault("dark_background", _ANTD_DARK_BACKGROUND)
-    return configure(**changes)
 
 
 def get_config() -> StartupLoadingConfig:
@@ -205,6 +205,14 @@ def _theme_config(config: StartupLoadingConfig) -> dict[str, Any]:
     }
 
 
+def _resolved_loader_colors(config: StartupLoadingConfig) -> tuple[str, str]:
+    defaults = ("#1677ff", "#4096ff")
+    return (
+        config.loader_color or config.color or defaults[0],
+        config.loader_dark_color or config.dark_color or defaults[1],
+    )
+
+
 def _overlay_html(config: StartupLoadingConfig) -> str:
     client_config = escape(
         json.dumps(_client_config(config), ensure_ascii=False, separators=(",", ":")),
@@ -216,31 +224,71 @@ def _overlay_html(config: StartupLoadingConfig) -> str:
     if config.hide_default_loading:
         classes.append("dash-loading--hide-default")
     class_name = " ".join(classes)
+    light_color, dark_color = _resolved_loader_colors(config)
+    if config.spinner_size_px is not None:
+        spinner_size = f"{config.spinner_size_px}px"
+    else:
+        spinner_size = "28px"
     styles = {
         "--dash-loading-background": config.background,
         "--dash-loading-dark-background": config.dark_background,
-        "--dash-loading-color": config.color,
-        "--dash-loading-dark-color": config.dark_color,
-        "--dash-loading-size": f"{config.spinner_size_px}px",
+        "--dash-loading-color": light_color,
+        "--dash-loading-dark-color": dark_color,
+        "--dash-loading-loader-color": light_color,
+        "--dash-loading-loader-dark-color": dark_color,
+        "--dash-loading-size": spinner_size,
         "--dash-loading-stroke": f"{config.spinner_stroke_px}px",
         "--dash-loading-fade-duration": f"{config.fade_duration_ms}ms",
         "--dash-loading-z-index": str(config.z_index),
     }
     style = escape(";".join(f"{name}:{value}" for name, value in styles.items()), quote=True)
+    ring = (
+        '<svg class="dash-loading__ring" viewBox="0 0 24 24" fill="none" '
+        'aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'
+        '<path d="M21 12.0004C20.9999 13.901 20.3981 15.7528 19.2809 17.2904'
+        'C18.1637 18.8279 16.5885 19.9723 14.7809 20.5596'
+        'C12.9733 21.1469 11.0262 21.1468 9.21864 20.5594'
+        'C7.41109 19.9721 5.83588 18.8276 4.71876 17.29'
+        'C3.60165 15.7523 2.99999 13.9005 3 11.9999'
+        'C3.00001 10.0993 3.60171 8.24755 4.71884 6.70994'
+        'C5.83598 5.17233 7.4112 4.02785 9.21877 3.44052'
+        'C11.0263 2.85319 12.9734 2.85316 14.781 3.44044" '
+        'stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>'
+        '</svg>'
+    )
     loader = config.custom_loader_html
     if loader is None:
-        loader = '<span class="dash-loading__spinner" aria-hidden="true"></span>'
+        if config.loader == "antd":
+            loader = (
+                '<span class="dash-loading__antd-spinner" aria-hidden="true">'
+                '<span class="dash-loading__antd-dot">'
+                '<i></i><i></i><i></i><i></i>'
+                '</span></span>'
+            )
+        elif config.loader == "ring":
+            loader = ring
+        else:
+            name = escape(config.loader, quote=True)
+            loader = (
+                f'<span class="dash-loading__loading-ui" data-dash-loading-ui="{name}" '
+                'aria-hidden="true"></span>'
+            )
+
+    content_class = "dash-loading__content"
+    if config.custom_loader_html is None and config.loader in _LOADING_UI_LOADERS:
+        content_class += " dash-loading__content--loading-ui"
+        loader = f'<div class="dash-loading__spinner-region">{loader}</div>'
 
     return (
         f'<div id="{overlay_id}" class="{class_name}" {_OVERLAY_MARKER} '
         f'data-config="{client_config}" role="status" aria-live="polite" '
         f'aria-label="{aria_label}" aria-busy="true" style="{style}">'
-        f'<div class="dash-loading__content">{loader}</div>'
+        f'<div class="{content_class}">{loader}</div>'
         "</div>"
     )
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=4)
 def _resource_text(name: str) -> str:
     return files("dash_startup_loading_plugin").joinpath("resources", name).read_text(encoding="utf-8").strip()
 
@@ -274,8 +322,15 @@ def _inject_overlay(app_index: str) -> str:
     body_match = _BODY_PATTERN.search(app_index)
     assert body_match is not None
     position = body_match.end()
-    script = f'<script data-dash-loading-resource="script">{_resource_text("loading.js")}</script>'
-    return app_index[:position] + _overlay_html(config) + script + app_index[position:]
+    scripts = ""
+    if config.custom_loader_html is None and config.loader not in {"ring", "antd"}:
+        scripts += (
+            '<script data-dash-loading-resource="loading-ui">'
+            f'{_resource_text("loading-ui.js")}'
+            '</script>'
+        )
+    scripts += f'<script data-dash-loading-resource="script">{_resource_text("loading.js")}</script>'
+    return app_index[:position] + _overlay_html(config) + scripts + app_index[position:]
 
 
 @hooks.index(priority=100)
@@ -283,14 +338,3 @@ def inject_startup_loading(app_index: str) -> str:
     """Inject the pre-React overlay into the final HTML document."""
 
     return _inject_overlay(app_index)
-
-
-def _configure_installed_integrations() -> StartupLoadingConfig:
-    """Apply defaults for supported component libraries already installed."""
-
-    if find_spec("dash_antd_components") is not None:
-        return configure_dac()
-    return get_config()
-
-
-_configure_installed_integrations()

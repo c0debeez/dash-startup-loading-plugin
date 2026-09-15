@@ -48,7 +48,6 @@
         return normalize(
             root.getAttribute("data-theme")
             || root.getAttribute("data-color-scheme")
-            || root.getAttribute("data-mantine-color-scheme")
         );
     }
 
@@ -74,7 +73,7 @@
     }
 
     function conventionalStoredTheme() {
-        var keys = ["mantine-color-scheme-value", "theme", "color-theme", "color-scheme"];
+        var keys = ["theme", "color-theme", "color-scheme"];
         try {
             for (var index = 0; index < keys.length; index += 1) {
                 var theme = normalize(parseStored(localStorage.getItem(keys[index])));

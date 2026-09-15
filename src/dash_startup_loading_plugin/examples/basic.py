@@ -2,7 +2,7 @@
 
 from dash import Dash, html
 
-from ..plugin import configure
+from ..plugin import setup
 from .shared import (
     DEMO_ACTION_TEXT,
     DEMO_DESCRIPTION,
@@ -17,7 +17,7 @@ from .shared import (
 def create_app() -> Dash:
     """Create the framework-neutral example application."""
 
-    configure(
+    setup(
         required_selectors=["#dash-app-ready"],
         minimum_display_ms=250,
         fade_duration_ms=180,

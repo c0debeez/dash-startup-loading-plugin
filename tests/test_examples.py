@@ -63,7 +63,7 @@ def test_all_examples_use_the_shared_display_copy():
         "DEMO_ACTION_TEXT",
     }
 
-    for name in ("basic.py", "mantine.py", "antd.py", "fac.py"):
+    for name in ("basic.py", "antd.py"):
         source = example_resources.joinpath(name).read_text(encoding="utf-8")
         assert all(shared_name in source for shared_name in shared_names)
 
@@ -77,22 +77,6 @@ def test_all_examples_use_the_shared_display_copy():
         DEMO_ACTION_TEXT,
     ):
         assert text in layout
-
-
-@pytest.mark.parametrize(
-    "name",
-    ["examples.dash-mantine-components", "dash-mantine-components", "mantine", "dmc"],
-)
-def test_mantine_demo_aliases_create_runnable_apps_when_dependency_is_installed(name):
-    pytest.importorskip("dash_mantine_components")
-    app = create_demo_app(name)
-
-    response = app.server.test_client().get("/")
-    layout = app.server.test_client().get("/_dash-layout").get_data(as_text=True)
-
-    assert response.status_code == 200
-    assert "data-dash-loading" in response.get_data(as_text=True)
-    assert "mantine-app-ready" in layout
 
 
 def test_unknown_demo_framework_has_actionable_error():
@@ -110,26 +94,6 @@ def test_antd_demo_reports_its_missing_dependency(monkeypatch):
         create_demo_app("dash-ant-design")
 
 
-def test_mantine_demo_reports_its_failed_import(monkeypatch):
-    monkeypatch.setitem(sys.modules, "dash_mantine_components", None)
-
-    with pytest.raises(
-        DemoDependencyError,
-        match="Failed to import dash_mantine_components",
-    ):
-        create_demo_app("dash-mantine-components")
-
-
-def test_fac_demo_reports_its_failed_import(monkeypatch):
-    monkeypatch.setitem(sys.modules, "feffery_antd_components", None)
-
-    with pytest.raises(
-        DemoDependencyError,
-        match="Failed to import feffery_antd_components",
-    ):
-        create_demo_app("examples.feffery-antd-components")
-
-
 def test_demo_cli_runs_selected_app_with_server_options(monkeypatch):
     calls = []
     fake_app = SimpleNamespace(run=lambda **options: calls.append(options))
@@ -137,7 +101,7 @@ def test_demo_cli_runs_selected_app_with_server_options(monkeypatch):
 
     result = cli.main(
         [
-            "examples.dash-mantine-components",
+            "examples.dash",
             "--host",
             "0.0.0.0",
             "--port",

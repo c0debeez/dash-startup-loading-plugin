@@ -2,7 +2,7 @@
 
 from dash import Dash, Input, Output, clientside_callback, html
 
-from ..plugin import configure_dac
+from ..plugin import setup
 from .cli import DemoDependencyError
 from .shared import (
     DEMO_ACTION_TEXT,
@@ -29,7 +29,7 @@ def create_app() -> Dash:
             "Install it with: pip install dash-ant-design"
         ) from error
 
-    configure_dac(
+    setup(
         required_selectors=["#antd-app-ready"],
         minimum_display_ms=250,
         fade_duration_ms=180,

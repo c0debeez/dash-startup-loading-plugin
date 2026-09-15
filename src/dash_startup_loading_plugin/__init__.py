@@ -5,14 +5,11 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     __version__ = version("dash-startup-loading-plugin")
 except PackageNotFoundError:  # pragma: no cover - source tree fallback
-    __version__ = "1.0.4"
+    __version__ = "1.1.0"
 
 from .plugin import (
     StartupLoadingConfig,
-    configure,
-    configure_dac,
-    configure_fac,
-    configure_dmc,
+    setup,
     get_config,
     reset_config,
 )
@@ -20,10 +17,7 @@ from .plugin import (
 __all__ = [
     "StartupLoadingConfig",
     "__version__",
-    "configure",
-    "configure_dac",
-    "configure_fac",
-    "configure_dmc",
+    "setup",
     "get_config",
     "reset_config",
 ]

@@ -10,31 +10,20 @@ from typing import Any
 
 _DEMO_ALIASES = {
     "examples.dash": "dash",
-    "examples.dash-mantine-components": "dash-mantine-components",
     "examples.dash-ant-design": "dash-ant-design",
-    "examples.feffery-antd-components": "feffery-antd-components",
     "dash": "dash",
     "basic": "dash",
-    "dash-mantine-components": "dash-mantine-components",
-    "mantine": "dash-mantine-components",
-    "dmc": "dash-mantine-components",
     "dash-ant-design": "dash-ant-design",
     "dash-antd-components": "dash-ant-design",
     "antd": "dash-ant-design",
-    "feffery-antd-components": "feffery-antd-components",
-    "fac": "feffery-antd-components",
 }
 _CLI_EXAMPLES = (
     "examples.dash",
-    "examples.dash-mantine-components",
     "examples.dash-ant-design",
-    "examples.feffery-antd-components",
 )
 _DEMO_MODULES = {
     "dash": ".basic",
-    "dash-mantine-components": ".mantine",
     "dash-ant-design": ".antd",
-    "feffery-antd-components": ".fac",
 }
 
 
@@ -42,7 +31,7 @@ class DemoDependencyError(RuntimeError):
     """Raised when a selected demo's component library cannot be imported."""
 
 
-def create_demo_app(framework: str = "dash-mantine-components") -> Any:
+def create_demo_app(framework: str = "dash") -> Any:
     """Create a bundled demo app for the requested component framework."""
 
     normalized = framework.strip().lower()

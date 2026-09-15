@@ -18,14 +18,13 @@
 ## 安装
 
 ```bash
-pip install "dash-startup-loading-plugin>=1.0.4"
+pip install "dash-startup-loading-plugin>=1.1.0"
 ```
 
 Dash 会通过 `dash_hooks` entry point 自动发现插件。安装后，默认 loading
 效果会自动启用，无需在应用中显式导入。
 
-如果环境中安装了 Dash Ant Design（`dash_antd_components`），插件会自动
-识别并应用与其亮色、暗色主题匹配的 loading 背景。
+默认背景颜色同时适用于原生 Dash 和 Dash Ant Design。
 
 ## 快速开始
 
@@ -49,13 +48,13 @@ if __name__ == "__main__":
 默认情况下，遮罩只替换 Dash 自带的 `._dash-loading` 动画，并在 Dash
 渲染出应用布局后关闭。等待懒加载或异步组件的占位节点消失属于可选行为。
 
-如需自定义行为，请在创建 `Dash` 实例前调用 `configure()`：
+如需自定义行为，请在创建 `Dash` 实例前调用 `setup()`：
 
 ```python
 from dash import Dash, html
-from dash_startup_loading_plugin import configure
+from dash_startup_loading_plugin import setup
 
-configure(
+setup(
     required_selectors=["#header", "#sidebar-menu"],
     pending_selector="[data-async-placeholder]",
     timeout_ms=6000,
@@ -82,7 +81,7 @@ app.layout = html.Main(
 当应用没有暴露主题偏好，或 loading 页面需要固定主题时，可手动配置：
 
 ```python
-configure(theme_mode="light")  # 或 "dark"
+setup(theme_mode="light")  # 或 "dark"
 ```
 
 如果应用主题偏好明确设置为 `"system"` 或 `"auto"`，插件仍会读取
@@ -90,81 +89,35 @@ configure(theme_mode="light")  # 或 "dark"
 `dash_theme_component_id` 指定优先读取的 Dash 组件：
 
 ```python
-configure(theme_mode="auto", dash_theme_component_id="theme-provider")
+setup(theme_mode="auto", dash_theme_component_id="theme-provider")
 ```
 
-## 组件库集成
+## Dash Ant Design
 
-各组件库不是本插件的依赖。应用只需单独安装实际使用的组件库。
-
-### Dash Ant Design
-
-插件会自动识别 Dash Ant Design。只有需要覆盖默认配置时，才需要调用
-`configure_dac()`：
+Dash Ant Design 是可选组件库。原生 Dash 和 Dash Ant Design 应用均使用
+`setup()` 配置。若应用自定义了 Ant Design 主题，可显式设置遮罩颜色：
 
 ```bash
 pip install dash-ant-design
 ```
 
-本插件不限制 Dash Ant Design 的版本。请安装与应用所用 Python 和 Dash
-版本兼容的版本。
-
 ```python
-from dash_startup_loading_plugin import configure_dac
+from dash_startup_loading_plugin import setup
 
-configure_dac(
-    background="#f5f5f5",
-    dark_background="#202020",
-)
-```
-
-### Dash Mantine Components
-
-`configure_dmc()` 会读取 Mantine 的当前默认主题，并注册其预渲染配色
-hook：
-
-```bash
-pip install dash-mantine-components
-```
-
-```python
-from dash_startup_loading_plugin import configure_dmc
-
-configure_dmc()
-```
-
-### feffery-antd-components
-
-使用 `configure_fac()` 使 loading 遮罩与 `AntdConfigProvider` 匹配：
-
-```bash
-pip install feffery-antd-components
-```
-
-本插件不固定 feffery-antd-components 的版本，兼容性由已安装的组件库决定。
-
-```python
-from dash_startup_loading_plugin import configure_fac
-
-configure_fac(required_selectors=["#fac-app-ready"])
+setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 ```
 
 ## 内置示例
 
-安装包中包含四个可直接运行的示例：
+安装包中包含两个可直接运行的示例：
 
 ```bash
 # Dash
 dash-startup-loading-plugin examples.dash
 
-# Dash Mantine Components
-dash-startup-loading-plugin examples.dash-mantine-components
-
 # Dash Ant Design
 dash-startup-loading-plugin examples.dash-ant-design
 
-# feffery-antd-components
-dash-startup-loading-plugin examples.feffery-antd-components
 ```
 
 组件库需要单独安装。如果所选示例无法导入对应组件库，命令会显示导入失败的
@@ -195,13 +148,13 @@ dash-startup-loading-plugin examples.dash \
 请显式设置为应用自己的 CSS 选择器：
 
 ```python
-configure(pending_selector="[data-async-placeholder]")
-configure(pending_selector=None)
+setup(pending_selector="[data-async-placeholder]")
+setup(pending_selector=None)
 ```
 
 ## 配置项
 
-`configure(**changes)` 会更新进程级、不可变的 `StartupLoadingConfig`。
+`setup(**changes)` 会更新进程级、不可变的 `StartupLoadingConfig`。
 
 | 参数 | 默认值 | 说明 |
 |---|---:|---|
@@ -216,27 +169,49 @@ configure(pending_selector=None)
 | `fade_duration_ms` | `160` | 淡出时长。 |
 | `z_index` | `9999` | 遮罩层级。 |
 | `background` | `"#ffffff"` | 亮色背景。 |
-| `dark_background` | `"#0f0f0f"` | 暗色背景。 |
-| `color` | `"#1677ff"` | 亮色 spinner 颜色。 |
-| `dark_color` | `"#4096ff"` | 暗色 spinner 颜色。 |
+| `dark_background` | `"#121212"` | 暗色背景。 |
+| `color` | `None` | 可选亮色 loader 颜色；未设置时使用所选 loader 的默认颜色。 |
+| `dark_color` | `None` | 可选暗色 loader 颜色；未设置时使用所选 loader 的默认颜色。 |
+| `loader_color` | `None` | 亮色模式下的 loader 颜色；未指定时使用 `color`。 |
+| `loader_dark_color` | `None` | 暗色模式下的 loader 颜色；未指定时使用 `dark_color`。 |
 | `theme_mode` | `"auto"` | `"auto"` 自动检测应用主题，未检测到时使用亮色；`"light"` 和 `"dark"` 用于强制指定主题。 |
 | `dash_theme_component_id` | `None` | 优先读取主题状态的 Dash 持久化组件 ID。 |
-| `spinner_size_px` | `28` | Spinner 宽度和高度。 |
-| `spinner_stroke_px` | `3` | Spinner 描边宽度。 |
+| `loader` | `"antd"` | Ant Design 四圆点指示器，或 Loading UI 的任一 loader 名称。 |
+| `spinner_size_px` | `28` | loader 的宽高，默认 28px，与 1.0.4 版本一致；传入 `None` 也使用 28px。 |
+| `spinner_stroke_px` | `2` | SVG ring 的描边宽度。 |
 | `hide_default_loading` | `True` | 遮罩存在时隐藏 `._dash-loading` 的视觉效果。 |
 | `custom_loader_html` | `None` | 替换默认 spinner 的可信 HTML。 |
 
 `custom_loader_html` 会原样插入页面，禁止传入任何不可信的用户输入。
+
+默认的 `antd` loader 使用 Ant Design Spin 的四圆点动画和默认蓝色（亮色 `#1677ff`、暗色 `#4096ff`）。如需显式指定：
+
+```python
+setup(loader="antd")
+```
+
+可用 `spinner_size_px`、`loader_color` 和 `loader_dark_color` 调整尺寸及配色，以匹配应用自定义的 Spin 主题。Loading UI loader 在亮暗模式下使用与 `antd` 相同的默认蓝色。
+
+内置的 [Loading UI](https://loading-ui.com/) 集合支持当前上游目录中的全部 47 个 loader 名称：
+
+```text
+accordion-loader, analyzing-image, arc, bars, bobbing-dots, bouncing-dots, classic, clock-ring, comet-spinner, concentric-ring, conveyor-loop, dash-ring, diamond, dots, dots-ring, dual-arc, fade-arc, infinity, infinity-square-snake, infinity-track, morphing-infinity, orbit-ring, pulsating-dots, pulse, pulse-dot, quarter-ring, ring, ripple, satellite-ring, skeleton, spiral, spokes, square-accordion, square-grid, square-snake, swirling, symmetric-wave, terminal, text-blink, text-dots, text-shimmer, text-shimmer-wave, triple-dot-spinner, twin-orbit, typing, wandering-eyes, wave
+```
+
+例如：
+
+```python
+setup(loader="spiral", loader_color="#e91e63", loader_dark_color="#ff80ab")
+```
+
+`ring` 使用内联 SVG；其他 Loading UI loader 使用在 Dash 启动前加载、隔离渲染的内置资源。渲染开始前不会显示其他指示器。 Loading UI loader 位于居中的 4:3 区域：640px 以下占全宽，640px 起占半宽，768px 起占三分之一，1024px 起占四分之一。图标类 loader 在区域内默认保持 28px；文字类 loader 根据文字调整宽度。上游组件采用 MIT 许可；参见[打包的许可文件](src/dash_startup_loading_plugin/resources/LOADING-UI-LICENSE.md)。
 
 ## Python API
 
 ```python
 from dash_startup_loading_plugin import (
     StartupLoadingConfig,
-    configure,
-    configure_dac,
-    configure_fac,
-    configure_dmc,
+    setup,
     get_config,
     reset_config,
 )

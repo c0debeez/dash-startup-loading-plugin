@@ -23,14 +23,13 @@ def test_readmes_use_current_selector_and_installation_examples():
         assert "#sidebar-menu" in readme
         assert "pending_selector" in readme
         assert "pip install dash-ant-design" in readme
-        assert "pip install feffery-antd-components" in readme
         assert "usage-header" not in readme
         assert "usage-sidebar-menu" not in readme
         assert "dash-ant-design  # Python 3.10+" not in readme
-        assert "feffery-antd-components>=0.4.0" not in readme
         assert 'theme_mode="auto"' in readme
         assert 'theme_mode="light"' in readme
         assert "dash_theme_component_id" in readme
+        assert "setup(loader=\"antd\")" in readme
 
 
 def test_readmes_link_to_each_other():
