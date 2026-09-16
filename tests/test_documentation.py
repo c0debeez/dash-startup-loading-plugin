@@ -27,6 +27,10 @@ def test_readmes_document_current_setup_and_installation():
         assert "minimum_display_ms" not in readme
         assert "fade_duration_ms" not in readme
         assert "overlay_id" not in readme
+        assert "spinner_size_px" not in readme
+        assert "spinner_stroke_px" not in readme
+        assert "loader_size" in readme
+        assert "loader_stroke_width" in readme
         assert "loader_text" in readme
         assert "pip install dash-ant-design" in readme
         assert "usage-header" not in readme

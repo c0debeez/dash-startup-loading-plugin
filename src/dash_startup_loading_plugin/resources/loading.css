@@ -81,8 +81,13 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot {
     position: relative;
     display: inline-block;
-    width: var(--dash-loading-antd-size, var(--dash-loading-size, 12px));
-    height: var(--dash-loading-antd-size, var(--dash-loading-size, 12px));
+    width: var(--dash-loading-size, 12px);
+    height: var(--dash-loading-size, 12px);
+}
+
+.dash-loading__antd-spinner {
+    transform: scale(1.6666667);
+    transform-origin: center;
 }
 
 .dash-loading__antd-dot {
@@ -93,8 +98,8 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot i {
     position: absolute;
     display: block;
-    width: calc((var(--dash-loading-antd-size, var(--dash-loading-size, 12px)) - 2px) / 2);
-    height: calc((var(--dash-loading-antd-size, var(--dash-loading-size, 12px)) - 2px) / 2);
+    width: calc((var(--dash-loading-size, 12px) - 2px) / 2);
+    height: calc((var(--dash-loading-size, 12px) - 2px) / 2);
     background: currentcolor;
     border-radius: 100%;
     transform: scale(0.75);

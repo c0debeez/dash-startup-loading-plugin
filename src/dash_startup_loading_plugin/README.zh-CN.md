@@ -124,8 +124,8 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 | `theme_mode` | `"auto"` | `"auto"` 自动检测应用主题，未检测到时使用亮色；`"light"` 和 `"dark"` 用于强制指定主题。 |
 | `loader` | `"default"` | 1.0.4 版本的单边框圆环；检测到 Dash Ant Design 时自动改用 `"antd"`，显式设置后不再自动切换。 |
 | `loader_text` | `"Loading"` | `text-*` Loading UI loader 显示的文字。 |
-| `spinner_size_px` | `12` | loader 的目标宽高。默认 loader 和内联 SVG ring 渲染为 12px；Ant Design 会将 12px 映射为其 20px 视觉尺寸，因此设置 12 和 20 的显示大小一致，其他显式尺寸保持不变。Loading UI 从官方 20px 基准等比缩放，传入 `None` 使用该基准。 |
-| `spinner_stroke_px` | `2` | 默认圆环、内联 ring 以及适用的 Loading UI loader 的边框和 SVG 描边宽度。 |
+| `loader_size` | `12` | loader 的目标宽高。默认 loader 和内联 SVG ring 渲染为 12px；Ant Design 在内部固定应用 20/12 的缩放比例，因此新的 12px 基准与原来 20px 的视觉大小一致，其他显式尺寸也按该基准同比缩放。Loading UI 从官方 20px 基准等比缩放，传入 `None` 使用该基准。 |
+| `loader_stroke_width` | `2` | 默认圆环、内联 ring 以及适用的 Loading UI loader 的边框和 SVG 描边宽度。 |
 | `custom_loader_html` | `None` | 替换默认 spinner 的可信 HTML。 |
 
 `custom_loader_html` 会原样插入页面，禁止传入任何不可信的用户输入。
@@ -136,7 +136,7 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 setup(loader="antd")
 ```
 
-可用 `spinner_size_px`、`loader_color` 和 `loader_dark_color` 调整尺寸及配色，以匹配应用自定义的 Spin 主题。可用 `loader_text` 替换 `text-*` loader 的默认文字：
+可用 `loader_size`、`loader_color` 和 `loader_dark_color` 调整尺寸及配色，以匹配应用自定义的 Spin 主题。可用 `loader_text` 替换 `text-*` loader 的默认文字：
 
 ```python
 setup(loader="text-shimmer", loader_text="正在准备仪表盘")

@@ -137,8 +137,8 @@ minimum display or fade duration.
 | `theme_mode` | `"auto"` | `"auto"` detects application theme signals and otherwise uses light; `"light"` and `"dark"` force a mode. |
 | `loader` | `"default"` | The 1.0.4 single-border ring; automatically becomes `"antd"` when Dash Ant Design is detected unless explicitly set. |
 | `loader_text` | `"Loading"` | Text rendered by `text-*` Loading UI loaders. |
-| `spinner_size_px` | `12` | Target loader width and height. The default and inline SVG ring render at 12px. Ant Design maps 12px to its 20px visual size, so 12 and 20 render identically; other explicit Ant Design sizes remain unchanged. Loading UI scales proportionally from its official 20px baseline, and `None` uses that baseline. |
-| `spinner_stroke_px` | `2` | Border and SVG stroke width for the default, inline ring, and applicable Loading UI loaders. |
+| `loader_size` | `12` | Target loader width and height. The default and inline SVG ring render at 12px. Ant Design applies a fixed 20/12 internal scale, so the new 12px baseline matches the former 20px visual size and other explicit values scale proportionally. Loading UI scales proportionally from its official 20px baseline, and `None` uses that baseline. |
+| `loader_stroke_width` | `2` | Border and SVG stroke width for the default, inline ring, and applicable Loading UI loaders. |
 | `custom_loader_html` | `None` | Trusted HTML replacing the default spinner. |
 
 `custom_loader_html` is inserted verbatim and must never contain untrusted
@@ -150,7 +150,7 @@ The default loader uses version 1.0.4's single-border ring animation in a 12×12
 setup(loader="antd")
 ```
 
-Use `spinner_size_px`, `loader_color`, and `loader_dark_color` to match customized Spin theme tokens. Use `loader_text` to replace the default text in `text-*` loaders:
+Use `loader_size`, `loader_color`, and `loader_dark_color` to match customized Spin theme tokens. Use `loader_text` to replace the default text in `text-*` loaders:
 
 ```python
 setup(loader="text-shimmer", loader_text="Preparing dashboard")

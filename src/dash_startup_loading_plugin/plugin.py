@@ -95,8 +95,8 @@ class SetupOptions(TypedDict, total=False):
     theme_mode: ThemeMode
     loader: LoaderName
     loader_text: str
-    spinner_size_px: int | None
-    spinner_stroke_px: int
+    loader_size: int | None
+    loader_stroke_width: int
     custom_loader_html: str | None
 
 
@@ -118,8 +118,8 @@ class StartupLoadingConfig:
     theme_mode: ThemeMode = "auto"
     loader: LoaderName = "default"
     loader_text: str = "Loading"
-    spinner_size_px: int | None = 12
-    spinner_stroke_px: int = 2
+    loader_size: int | None = 12
+    loader_stroke_width: int = 2
     custom_loader_html: str | None = None
 
 
@@ -140,10 +140,10 @@ def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
         value = getattr(config, name)
         if value is not None and (not isinstance(value, str) or not value.strip()):
             raise ValueError(f"{name} must be None or a non-empty CSS color")
-    if config.spinner_size_px is not None and config.spinner_size_px < 0:
-        raise ValueError("spinner_size_px must be greater than or equal to zero")
-    if config.spinner_stroke_px < 0:
-        raise ValueError("spinner_stroke_px must be greater than or equal to zero")
+    if config.loader_size is not None and config.loader_size < 0:
+        raise ValueError("loader_size must be greater than or equal to zero")
+    if config.loader_stroke_width < 0:
+        raise ValueError("loader_stroke_width must be greater than or equal to zero")
     return config
 
 
@@ -249,16 +249,16 @@ def _overlay_html(
     class_name = "dash-loading"
     selected_loader = loader or config.loader
     light_color, dark_color = _resolved_loader_colors(config, selected_loader)
-    if config.spinner_size_px is not None:
-        spinner_size = f"{config.spinner_size_px}px"
-        spinner_scale = config.spinner_size_px / 20
+    if config.loader_size is not None:
+        spinner_size = f"{config.loader_size}px"
+        spinner_scale = config.loader_size / 20
     else:
         spinner_size = "20px"
         spinner_scale = 1
     loading_ui_stroke = (
-        config.spinner_stroke_px / spinner_scale
+        config.loader_stroke_width / spinner_scale
         if spinner_scale > 0
-        else config.spinner_stroke_px
+        else config.loader_stroke_width
     )
     styles = {
         "--dash-loading-background": config.background,
@@ -268,7 +268,7 @@ def _overlay_html(
         "--dash-loading-size": spinner_size,
         "--dash-loading-scale": f"{spinner_scale:g}",
         "--dash-loading-ui-display": "none" if spinner_scale == 0 else "inline-flex",
-        "--dash-loading-stroke": f"{config.spinner_stroke_px}px",
+        "--dash-loading-stroke": f"{config.loader_stroke_width}px",
         "--dash-loading-ui-stroke": f"{loading_ui_stroke:g}px",
         "--dash-loading-z-index": str(config.z_index),
     }
@@ -296,10 +296,8 @@ def _overlay_html(
         if selected_loader == "default":
             loader_html = '<span class="dash-loading__spinner" aria-hidden="true"></span>'
         elif selected_loader == "antd":
-            antd_size = "20px" if config.spinner_size_px == 12 else spinner_size
             loader_html = (
-                '<span class="dash-loading__antd-spinner" aria-hidden="true" '
-                f'style="--dash-loading-antd-size:{antd_size}">'
+                '<span class="dash-loading__antd-spinner" aria-hidden="true">'
                 '<span class="dash-loading__antd-dot">'
                 '<i></i><i></i><i></i><i></i>'
                 '</span></span>'

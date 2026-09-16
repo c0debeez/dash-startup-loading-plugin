@@ -117,25 +117,26 @@ def test_dash_builtin_loading_message_stays_hidden_after_overlay_removal():
     assert ".dash-loading ~" not in css
 
 
-def test_antd_spinner_is_selectable_and_allows_size_override():
+def test_antd_spinner_uses_12px_as_its_scaled_visual_baseline():
     setup(loader="antd")
     result = _inject_overlay("<html><body></body></html>")
+    css = files("dash_startup_loading_plugin").joinpath("resources", "loading.css").read_text()
+
     assert '<span class="dash-loading__antd-dot">' in result
     assert '<i></i><i></i><i></i><i></i>' in result
     assert '--dash-loading-size:12px' in result
-    assert 'style="--dash-loading-antd-size:20px"' in result
+    assert "transform: scale(1.6666667);" in css
+    assert "transform-origin: center;" in css
     assert '--dash-loading-loader-color:#1677ff' in result
     assert '--dash-loading-loader-dark-color:#4096ff' in result
 
-    setup(spinner_size_px=20)
+    setup(loader_size=20)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:20px' in result
-    assert 'style="--dash-loading-antd-size:20px"' in result
 
-    setup(spinner_size_px=32)
+    setup(loader_size=32)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:32px' in result
-    assert 'style="--dash-loading-antd-size:32px"' in result
 
 
 def test_antd_default_size_override_does_not_affect_other_loaders():
@@ -143,7 +144,7 @@ def test_antd_default_size_override_does_not_affect_other_loaders():
     result = _inject_overlay("<html><body></body></html>")
 
     assert '--dash-loading-size:12px' in result
-    assert 'style="--dash-loading-antd-size:' not in result
+    assert '<span class="dash-loading__antd-spinner"' not in result
 
 
 def test_invalid_loader_is_rejected():
@@ -193,13 +194,13 @@ def test_loading_ui_uses_official_component_geometry_and_border_box():
     assert '--dash-loading-scale:0.6' in result
     assert '--dash-loading-ui-stroke:3.33333px' in result
 
-    setup(loader="wave", spinner_size_px=40)
+    setup(loader="wave", loader_size=40)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:40px' in result
     assert '--dash-loading-scale:2' in result
     assert '--dash-loading-ui-stroke:1px' in result
 
-    setup(loader="wave", spinner_size_px=0)
+    setup(loader="wave", loader_size=0)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-scale:0' in result
     assert '--dash-loading-ui-display:none' in result
@@ -272,11 +273,11 @@ def test_loading_ui_ring_uses_responsive_region_and_accepts_fixed_size():
     assert '--dash-loading-size:12px' in result
     assert '--dash-loading-loader-color:#000' in result
 
-    setup(spinner_size_px=36)
+    setup(loader_size=36)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:36px' in result
 
-    setup(spinner_size_px=None)
+    setup(loader_size=None)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:20px' in result
     assert '--dash-loading-scale:1' in result
@@ -306,6 +307,8 @@ def test_custom_html_skips_loading_ui_runtime():
         "timeout_ms",
         "minimum_display_ms",
         "fade_duration_ms",
+        "spinner_size_px",
+        "spinner_stroke_px",
         "color",
         "dark_color",
         "hide_default_loading",
@@ -322,6 +325,10 @@ def test_configuration_validation():
         setup(theme_mode="sepia")
     with pytest.raises(ValueError, match="loader_text"):
         setup(loader_text=" ")
+    with pytest.raises(ValueError, match="loader_size"):
+        setup(loader_size=-1)
+    with pytest.raises(ValueError, match="loader_stroke_width"):
+        setup(loader_stroke_width=-1)
     with pytest.raises(TypeError, match="Unknown"):
         setup(unknown=True)
 
