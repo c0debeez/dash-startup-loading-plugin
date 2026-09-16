@@ -5,14 +5,7 @@
     display: grid;
     place-items: center;
     overflow: hidden;
-    opacity: 1;
     background: var(--dash-loading-background, #fff);
-    transition: opacity var(--dash-loading-fade-duration, 160ms) ease;
-}
-
-.dash-loading.is-ready {
-    pointer-events: none;
-    opacity: 0;
 }
 
 .dash-loading__content {
@@ -88,8 +81,8 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot {
     position: relative;
     display: inline-block;
-    width: var(--dash-loading-size, 12px);
-    height: var(--dash-loading-size, 12px);
+    width: var(--dash-loading-antd-size, var(--dash-loading-size, 12px));
+    height: var(--dash-loading-antd-size, var(--dash-loading-size, 12px));
 }
 
 .dash-loading__antd-dot {
@@ -100,8 +93,8 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot i {
     position: absolute;
     display: block;
-    width: calc((var(--dash-loading-size, 12px) - 2px) / 2);
-    height: calc((var(--dash-loading-size, 12px) - 2px) / 2);
+    width: calc((var(--dash-loading-antd-size, var(--dash-loading-size, 12px)) - 2px) / 2);
+    height: calc((var(--dash-loading-antd-size, var(--dash-loading-size, 12px)) - 2px) / 2);
     background: currentcolor;
     border-radius: 100%;
     transform: scale(0.75);
@@ -135,10 +128,6 @@ html[data-dash-loading-framework="mantine"][data-dash-loading-theme="dark"] .das
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dash-loading {
-        transition: none;
-    }
-
     .dash-loading__ring {
         animation-duration: 1.6s;
     }

@@ -86,11 +86,7 @@ def _register_dash_app(app: Any) -> None:
 
 class SetupOptions(TypedDict, total=False):
     enabled: bool
-    overlay_id: str
     aria_label: str
-    timeout_ms: int | None
-    minimum_display_ms: int
-    fade_duration_ms: int
     z_index: int
     background: str
     dark_background: str
@@ -113,11 +109,7 @@ class StartupLoadingConfig:
     """
 
     enabled: bool = True
-    overlay_id: str = "dash-loading"
     aria_label: str = "Loading"
-    timeout_ms: int | None = 6000
-    minimum_display_ms: int = 0
-    fade_duration_ms: int = 160
     z_index: int = 9999
     background: str = "#ffffff"
     dark_background: str = "#121212"
@@ -138,10 +130,6 @@ _config = _DEFAULT_CONFIG
 def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
     if not isinstance(config.enabled, bool):
         raise TypeError("enabled must be a boolean")
-    if not isinstance(config.overlay_id, str) or not config.overlay_id.strip():
-        raise ValueError("overlay_id must be a non-empty string")
-    if config.timeout_ms is not None and config.timeout_ms < 0:
-        raise ValueError("timeout_ms must be None or greater than or equal to zero")
     if config.theme_mode not in {"auto", "light", "dark"}:
         raise ValueError("theme_mode must be 'auto', 'light', or 'dark'")
     if config.loader not in _LOADING_UI_LOADERS | {"default", "antd"}:
@@ -154,9 +142,8 @@ def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
             raise ValueError(f"{name} must be None or a non-empty CSS color")
     if config.spinner_size_px is not None and config.spinner_size_px < 0:
         raise ValueError("spinner_size_px must be greater than or equal to zero")
-    for name in ("minimum_display_ms", "fade_duration_ms", "spinner_stroke_px"):
-        if getattr(config, name) < 0:
-            raise ValueError(f"{name} must be greater than or equal to zero")
+    if config.spinner_stroke_px < 0:
+        raise ValueError("spinner_stroke_px must be greater than or equal to zero")
     return config
 
 
@@ -199,14 +186,6 @@ def reset_config() -> StartupLoadingConfig:
         _config = _DEFAULT_CONFIG
         _explicit_options = frozenset()
         return _config
-
-
-def _client_config(config: StartupLoadingConfig) -> dict[str, Any]:
-    return {
-        "timeoutMs": config.timeout_ms,
-        "minimumDisplayMs": config.minimum_display_ms,
-        "fadeDurationMs": config.fade_duration_ms,
-    }
 
 
 def _mantine_forced_color_scheme(layout: Any) -> str | None:
@@ -266,11 +245,6 @@ def _overlay_html(
     config: StartupLoadingConfig,
     loader: LoaderName | None = None,
 ) -> str:
-    client_config = escape(
-        json.dumps(_client_config(config), ensure_ascii=False, separators=(",", ":")),
-        quote=True,
-    )
-    overlay_id = escape(config.overlay_id, quote=True)
     aria_label = escape(config.aria_label, quote=True)
     class_name = "dash-loading"
     selected_loader = loader or config.loader
@@ -296,7 +270,6 @@ def _overlay_html(
         "--dash-loading-ui-display": "none" if spinner_scale == 0 else "inline-flex",
         "--dash-loading-stroke": f"{config.spinner_stroke_px}px",
         "--dash-loading-ui-stroke": f"{loading_ui_stroke:g}px",
-        "--dash-loading-fade-duration": f"{config.fade_duration_ms}ms",
         "--dash-loading-z-index": str(config.z_index),
     }
     if config.background != _DEFAULT_CONFIG.background:
@@ -323,8 +296,10 @@ def _overlay_html(
         if selected_loader == "default":
             loader_html = '<span class="dash-loading__spinner" aria-hidden="true"></span>'
         elif selected_loader == "antd":
+            antd_size = "20px" if config.spinner_size_px == 12 else spinner_size
             loader_html = (
-                '<span class="dash-loading__antd-spinner" aria-hidden="true">'
+                '<span class="dash-loading__antd-spinner" aria-hidden="true" '
+                f'style="--dash-loading-antd-size:{antd_size}">'
                 '<span class="dash-loading__antd-dot">'
                 '<i></i><i></i><i></i><i></i>'
                 '</span></span>'
@@ -346,8 +321,8 @@ def _overlay_html(
         loader_html = f'<div class="dash-loading__spinner-region">{loader_html}</div>'
 
     return (
-        f'<div id="{overlay_id}" class="{class_name}" {_OVERLAY_MARKER} '
-        f'data-config="{client_config}" role="status" aria-live="polite" '
+        f'<div class="{class_name}" {_OVERLAY_MARKER} '
+        'role="status" aria-live="polite" '
         f'aria-label="{aria_label}" aria-busy="true" style="{style}">'
         f'<div class="{content_class}">{loader_html}</div>'
         "</div>"

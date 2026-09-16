@@ -45,33 +45,6 @@ if __name__ == "__main__":
     app.run(debug=True)
 ```
 
-默认情况下，遮罩只替换 Dash 自带的 `._dash-loading` 动画，并在 Dash
-渲染出初始应用布局后关闭，不会继续等待后续渲染的懒加载或异步子组件。
-
-如需自定义行为，请在创建 `Dash` 实例前调用 `setup()`：
-
-```python
-from dash import Dash, html
-from dash_startup_loading_plugin import setup
-
-setup(
-    loader="wave",
-    loader_color="#7950f2",
-    loader_dark_color="#b197fc",
-    timeout_ms=6000,
-    minimum_display_ms=250,
-    fade_duration_ms=180,
-)
-
-app = Dash(__name__)
-app.layout = html.Main(
-    [
-        html.Header("Header"),
-        html.Nav("Sidebar"),
-    ]
-)
-```
-
 ### 主题行为
 
 默认的 `theme_mode="auto"` 会按顺序读取应用显式提供的主题：HTML 根节点
@@ -130,13 +103,10 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 
 ## 关闭时机
 
-插件观察 Dash 标准的 `#react-entry-point`。当该根节点不再包含
-`._dash-loading`、已经出现实际渲染内容，并连续两个动画帧保持就绪后，
-遮罩会关闭。这些选择器属于插件实现细节，不再作为配置项暴露，因为插件只负责
-替换 Dash 的启动 loader，不跟踪应用特有的懒加载或异步组件。
-
-`timeout_ms` 是强制关闭的安全兜底。`minimum_display_ms` 适用于正常就绪和
-手动关闭，但不会延迟 timeout。
+插件观察 Dash 标准的 `#react-entry-point`，其中的 `._dash-loading`
+消失后立即关闭遮罩。Dash 会在初始化期间维护该节点，并在 hydration 完成时
+用应用布局替换它。如果 Dash 一直处于 loading 状态，配置的 loader 也会一直
+显示；插件不再设置超时、最短显示时间或淡出时长。
 
 ## 配置项
 
@@ -145,11 +115,7 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 | 参数 | 默认值 | 说明 |
 |---|---:|---|
 | `enabled` | `True` | 是否启用 index 注入。 |
-| `overlay_id` | `"dash-loading"` | 注入遮罩的 ID。 |
 | `aria_label` | `"Loading"` | 无障碍状态标签。 |
-| `timeout_ms` | `6000` | 强制关闭超时；设置为 `None` 可禁用。 |
-| `minimum_display_ms` | `0` | 最短显示时间。 |
-| `fade_duration_ms` | `160` | 淡出时长。 |
 | `z_index` | `9999` | 遮罩层级。 |
 | `background` | `"#ffffff"` | 亮色背景。 |
 | `dark_background` | `"#121212"` | 暗色背景。 |
@@ -158,7 +124,7 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 | `theme_mode` | `"auto"` | `"auto"` 自动检测应用主题，未检测到时使用亮色；`"light"` 和 `"dark"` 用于强制指定主题。 |
 | `loader` | `"default"` | 1.0.4 版本的单边框圆环；检测到 Dash Ant Design 时自动改用 `"antd"`，显式设置后不再自动切换。 |
 | `loader_text` | `"Loading"` | `text-*` Loading UI loader 显示的文字。 |
-| `spinner_size_px` | `12` | loader 的目标宽高：默认值 `12` 表示渲染为 12px；该值直接控制默认、Ant Design 及内联 SVG ring，并使 Loading UI 从官方 20px 基准等比缩放。仅当显式传入 `None` 时，才使用 20px 基准尺寸。 |
+| `spinner_size_px` | `12` | loader 的目标宽高。默认 loader 和内联 SVG ring 渲染为 12px；Ant Design 会将 12px 映射为其 20px 视觉尺寸，因此设置 12 和 20 的显示大小一致，其他显式尺寸保持不变。Loading UI 从官方 20px 基准等比缩放，传入 `None` 使用该基准。 |
 | `spinner_stroke_px` | `2` | 默认圆环、内联 ring 以及适用的 Loading UI loader 的边框和 SVG 描边宽度。 |
 | `custom_loader_html` | `None` | 替换默认 spinner 的可信 HTML。 |
 

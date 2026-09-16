@@ -47,34 +47,6 @@ if __name__ == "__main__":
     app.run(debug=True)
 ```
 
-By default, the overlay only replaces Dash's built-in `._dash-loading`
-animation and closes once Dash has rendered the initial application layout.
-It does not wait for lazy or asynchronous children that render later.
-
-Call `setup()` before creating `Dash` when custom behavior is needed:
-
-```python
-from dash import Dash, html
-from dash_startup_loading_plugin import setup
-
-setup(
-    loader="wave",
-    loader_color="#7950f2",
-    loader_dark_color="#b197fc",
-    timeout_ms=6000,
-    minimum_display_ms=250,
-    fade_duration_ms=180,
-)
-
-app = Dash(__name__)
-app.layout = html.Main(
-    [
-        html.Header("Header"),
-        html.Nav("Sidebar"),
-    ]
-)
-```
-
 ### Theme behavior
 
 With the default `theme_mode="auto"`, the startup overlay follows an explicit
@@ -142,14 +114,11 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 ## Dismissal behavior
 
 The plugin observes Dash's standard `#react-entry-point`. The overlay closes
-after that root no longer contains `._dash-loading`, contains rendered
-content, and remains ready for two animation frames. These selectors are
-implementation details rather than configuration options because the plugin
-only replaces Dash's startup loader. It does not track application-specific
-lazy or asynchronous components.
-
-`timeout_ms` is a forced-dismiss fallback. `minimum_display_ms` applies to
-ready and manual dismissal, but does not delay a timeout.
+as soon as that root no longer contains `._dash-loading`. Dash controls this
+node throughout initialization and replaces it with the application layout
+when hydration completes. If Dash remains in its loading state, the configured
+loader remains visible; the plugin does not use a timeout or an artificial
+minimum display or fade duration.
 
 ## Configuration
 
@@ -159,11 +128,7 @@ ready and manual dismissal, but does not delay a timeout.
 | Option | Default | Description |
 |---|---:|---|
 | `enabled` | `True` | Enable index injection. |
-| `overlay_id` | `"dash-loading"` | Injected overlay ID. |
 | `aria_label` | `"Loading"` | Accessible status label. |
-| `timeout_ms` | `6000` | Forced-dismiss timeout; use `None` to disable. |
-| `minimum_display_ms` | `0` | Minimum display time. |
-| `fade_duration_ms` | `160` | Fade-out duration. |
 | `z_index` | `9999` | Overlay stacking order. |
 | `background` | `"#ffffff"` | Light background. |
 | `dark_background` | `"#121212"` | Dark background. |
@@ -172,7 +137,7 @@ ready and manual dismissal, but does not delay a timeout.
 | `theme_mode` | `"auto"` | `"auto"` detects application theme signals and otherwise uses light; `"light"` and `"dark"` force a mode. |
 | `loader` | `"default"` | The 1.0.4 single-border ring; automatically becomes `"antd"` when Dash Ant Design is detected unless explicitly set. |
 | `loader_text` | `"Loading"` | Text rendered by `text-*` Loading UI loaders. |
-| `spinner_size_px` | `12` | Target loader width and height: the default value `12` renders at 12px. It directly sizes the default, Ant Design, and inline SVG ring loaders, while Loading UI scales proportionally from its official 20px baseline. Only explicitly passing `None` uses the 20px baseline size. |
+| `spinner_size_px` | `12` | Target loader width and height. The default and inline SVG ring render at 12px. Ant Design maps 12px to its 20px visual size, so 12 and 20 render identically; other explicit Ant Design sizes remain unchanged. Loading UI scales proportionally from its official 20px baseline, and `None` uses that baseline. |
 | `spinner_stroke_px` | `2` | Border and SVG stroke width for the default, inline ring, and applicable Loading UI loaders. |
 | `custom_loader_html` | `None` | Trusted HTML replacing the default spinner. |
 

@@ -23,6 +23,10 @@ def test_readmes_document_current_setup_and_installation():
         assert "required_selectors" not in readme
         assert "pending_selector" not in readme
         assert "hide_default_loading" not in readme
+        assert "timeout_ms" not in readme
+        assert "minimum_display_ms" not in readme
+        assert "fade_duration_ms" not in readme
+        assert "overlay_id" not in readme
         assert "loader_text" in readme
         assert "pip install dash-ant-design" in readme
         assert "usage-header" not in readme

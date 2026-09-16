@@ -1,6 +1,3 @@
-import html
-import json
-import re
 from importlib.resources import files
 
 import pytest
@@ -23,12 +20,6 @@ def restore_defaults():
     reset_config()
 
 
-def _data_config(index: str) -> dict:
-    match = re.search(r'data-config="([^"]+)"', index)
-    assert match is not None
-    return json.loads(html.unescape(match.group(1)))
-
-
 def test_setup_is_the_public_configuration_entry_point():
     assert hasattr(loading_plugin, "setup")
     assert not hasattr(loading_plugin, "configure")
@@ -43,9 +34,9 @@ def test_injects_overlay_after_body_with_custom_attributes():
     assert result.index("<style") < result.index("</head>")
     assert '<script data-dash-loading-resource="theme">' in result
     assert result.index('data-dash-loading-resource="theme"') < result.index("</head>")
-    assert '<body class="app"><div id="dash-loading"' in result
+    assert '<body class="app"><div class="dash-loading"' in result
     assert '<script data-dash-loading-resource="script">' in result
-    assert result.index('id="dash-loading"') < result.index(
+    assert result.index('class="dash-loading"') < result.index(
         '<script data-dash-loading-resource="script">'
     )
     assert result.count(" data-dash-loading ") == 1
@@ -56,11 +47,7 @@ def test_injects_overlay_after_body_with_custom_attributes():
     assert '--dash-loading-stroke:2px' in result
     assert '--dash-loading-loader-color:#000' in result
     assert '--dash-loading-loader-dark-color:#fff' in result
-    assert _data_config(result) == {
-        "timeoutMs": 6000,
-        "minimumDisplayMs": 0,
-        "fadeDurationMs": 160,
-    }
+    assert "data-config=" not in result
 
 
 def test_injection_is_idempotent_and_can_be_disabled():
@@ -72,25 +59,12 @@ def test_injection_is_idempotent_and_can_be_disabled():
     assert _inject_overlay(index) == index
 
 
-def test_serializes_display_timing_and_escapes_attributes():
-    setup(
-        overlay_id='loader"safe',
-        aria_label='Loading "application"',
-        timeout_ms=None,
-        minimum_display_ms=250,
-        fade_duration_ms=90,
-    )
+def test_escapes_accessible_label():
+    setup(aria_label='Loading "application"')
 
     result = _inject_overlay("<html><body><main></main></body></html>")
-    config = _data_config(result)
 
-    assert 'id="loader&quot;safe"' in result
     assert 'aria-label="Loading &quot;application&quot;"' in result
-    assert config == {
-        "timeoutMs": None,
-        "minimumDisplayMs": 250,
-        "fadeDurationMs": 90,
-    }
 
 
 def test_browser_runtime_only_waits_for_dash_initial_render():
@@ -101,9 +75,16 @@ def test_browser_runtime_only_waits_for_dash_initial_render():
     )
 
     assert 'document.querySelector("#react-entry-point")' in script
+    assert 'root.querySelector("._dash-loading")' in script
+    assert "sawDashLoading = true" in script
     assert "rootSelector" not in script
     assert "requiredSelectors" not in script
     assert "pendingSelector" not in script
+    assert "timeoutMs" not in script
+    assert "minimumDisplayMs" not in script
+    assert "fadeDurationMs" not in script
+    assert "setTimeout" not in script
+    assert "requestAnimationFrame" not in script
 
 
 def test_custom_loader_html_is_intentionally_preserved():
@@ -142,12 +123,27 @@ def test_antd_spinner_is_selectable_and_allows_size_override():
     assert '<span class="dash-loading__antd-dot">' in result
     assert '<i></i><i></i><i></i><i></i>' in result
     assert '--dash-loading-size:12px' in result
+    assert 'style="--dash-loading-antd-size:20px"' in result
     assert '--dash-loading-loader-color:#1677ff' in result
     assert '--dash-loading-loader-dark-color:#4096ff' in result
+
+    setup(spinner_size_px=20)
+    result = _inject_overlay("<html><body></body></html>")
+    assert '--dash-loading-size:20px' in result
+    assert 'style="--dash-loading-antd-size:20px"' in result
 
     setup(spinner_size_px=32)
     result = _inject_overlay("<html><body></body></html>")
     assert '--dash-loading-size:32px' in result
+    assert 'style="--dash-loading-antd-size:32px"' in result
+
+
+def test_antd_default_size_override_does_not_affect_other_loaders():
+    setup(loader="default")
+    result = _inject_overlay("<html><body></body></html>")
+
+    assert '--dash-loading-size:12px' in result
+    assert 'style="--dash-loading-antd-size:' not in result
 
 
 def test_invalid_loader_is_rejected():
@@ -306,6 +302,10 @@ def test_custom_html_skips_loading_ui_runtime():
         "root_selector",
         "required_selectors",
         "pending_selector",
+        "overlay_id",
+        "timeout_ms",
+        "minimum_display_ms",
+        "fade_duration_ms",
         "color",
         "dark_color",
         "hide_default_loading",
@@ -318,8 +318,6 @@ def test_removed_configuration_options_are_rejected(removed_option):
 
 
 def test_configuration_validation():
-    with pytest.raises(ValueError, match="timeout_ms"):
-        setup(timeout_ms=-1)
     with pytest.raises(ValueError, match="theme_mode"):
         setup(theme_mode="sepia")
     with pytest.raises(ValueError, match="loader_text"):
@@ -454,7 +452,7 @@ def test_resource_names_drop_startup_and_preserve_dash_default_loading_selector(
     }
     assert "startup" not in resource_text.lower()
     assert "._dash-loading" in resource_text
-    assert "window.dashLoading" in resource_text
+    assert "window.dashLoading" not in resource_text
     assert "dash-loading:ready" in resource_text
 
 

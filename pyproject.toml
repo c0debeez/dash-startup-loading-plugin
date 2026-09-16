@@ -11,7 +11,6 @@ requires-python = ">=3.9"
 authors = [
       { name = "Ethan Zhang", email = "ethan.zhang2016@gmail.com" }
 ]
-github = "https://github.com/c0debeez/dash-startup-loading-plugin"
 keywords = ["dash", "plotly", "loading", "plugin"]
 classifiers = ["Framework :: Dash"]
 license = "MIT"
@@ -20,6 +19,9 @@ dependencies = [
     "dash>=3.0.3",
     "typing-extensions>=4.11",
 ]
+
+[project.urls]
+Repository = "https://github.com/c0debeez/dash-startup-loading-plugin"
 
 [dependency-groups]
 test = [
