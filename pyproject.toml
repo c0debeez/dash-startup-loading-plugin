@@ -21,7 +21,10 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/c0debeez/dash-startup-loading-plugin"
+"Homepage" = "https://github.com/c0debeez/dash-startup-loading-plugin"
+"Bug Reports" = "https://github.com/c0debeez/dash-startup-loading-plugin/issues"
+"Source" = "https://github.com/c0debeez/dash-startup-loading-plugin"
+
 
 [dependency-groups]
 test = [
