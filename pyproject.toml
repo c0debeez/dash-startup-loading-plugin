@@ -11,21 +11,20 @@ requires-python = ">=3.9"
 authors = [
       { name = "Ethan Zhang", email = "ethan.zhang2016@gmail.com" }
 ]
+github = "https://github.com/c0debeez/dash-startup-loading-plugin"
 keywords = ["dash", "plotly", "loading", "plugin"]
 classifiers = ["Framework :: Dash"]
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
     "dash>=3.0.3",
+    "typing-extensions>=4.11",
 ]
 
 [dependency-groups]
 test = [
     "pytest>=8",
 ]
-
-[project.scripts]
-dash-startup-loading-plugin = "dash_startup_loading_plugin.examples:main"
 
 [project.entry-points."dash_hooks"]
 dash_startup_loading_plugin = "dash_startup_loading_plugin"
@@ -44,6 +43,7 @@ dash_startup_loading_plugin = [
     "resources/*.css",
     "resources/*.js",
     "resources/*.md",
+    "py.typed",
 ]
 
 [tool.pytest.ini_options]

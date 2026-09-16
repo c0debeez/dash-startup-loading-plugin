@@ -213,6 +213,7 @@ version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "dash" },
+    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -222,7 +223,10 @@ test = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "dash", specifier = ">=3.0.3" }]
+requires-dist = [
+    { name = "dash", specifier = ">=3.0.3" },
+    { name = "typing-extensions", specifier = ">=4.11" },
+]
 
 [package.metadata.requires-dev]
 test = [{ name = "pytest", specifier = ">=8" }]

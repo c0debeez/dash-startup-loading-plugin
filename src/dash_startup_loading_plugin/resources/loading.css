@@ -6,7 +6,6 @@
     place-items: center;
     overflow: hidden;
     opacity: 1;
-    color: var(--dash-loading-color, #1677ff);
     background: var(--dash-loading-background, #fff);
     transition: opacity var(--dash-loading-fade-duration, 160ms) ease;
 }
@@ -20,10 +19,24 @@
     display: grid;
     place-items: center;
     color: var(--dash-loading-loader-color, #1677ff);
+    width: var(--dash-loading-size, 12px);
+    height: var(--dash-loading-size, 12px);
 }
 
 .dash-loading__content--loading-ui {
     width: 100%;
+    height: auto;
+}
+
+.dash-loading__spinner {
+    box-sizing: border-box;
+    display: block;
+    width: var(--dash-loading-size, 12px);
+    height: var(--dash-loading-size, 12px);
+    border: var(--dash-loading-stroke, 2px) solid transparent;
+    border-top-color: currentcolor;
+    border-radius: 50%;
+    animation: dash-loading-spin 0.8s linear infinite;
 }
 
 .dash-loading__spinner-region {
@@ -55,14 +68,15 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 
 .dash-loading__ring {
     display: inline-block;
-    width: var(--dash-loading-size, 28px);
-    height: var(--dash-loading-size, 28px);
+    width: var(--dash-loading-size, 12px);
+    height: var(--dash-loading-size, 12px);
 }
 
 .dash-loading__loading-ui {
-    display: inline-block;
-    width: var(--dash-loading-size, 28px);
-    height: var(--dash-loading-size, 28px);
+    display: var(--dash-loading-ui-display, inline-flex);
+    width: auto;
+    height: auto;
+    zoom: var(--dash-loading-scale, 1);
 }
 
 .dash-loading__ring {
@@ -70,18 +84,12 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
     animation: dash-loading-ui-ring-spin 1s linear infinite;
 }
 
-.dash-loading__loading-ui[data-dash-loading-ui^="text-"] {
-    width: auto;
-    min-width: 6em;
-    height: auto;
-}
-
 .dash-loading__antd-spinner,
 .dash-loading__antd-dot {
     position: relative;
     display: inline-block;
-    width: var(--dash-loading-size, 28px);
-    height: var(--dash-loading-size, 28px);
+    width: var(--dash-loading-size, 12px);
+    height: var(--dash-loading-size, 12px);
 }
 
 .dash-loading__antd-dot {
@@ -92,8 +100,8 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot i {
     position: absolute;
     display: block;
-    width: calc((var(--dash-loading-size, 28px) - 2px) / 2);
-    height: calc((var(--dash-loading-size, 28px) - 2px) / 2);
+    width: calc((var(--dash-loading-size, 12px) - 2px) / 2);
+    height: calc((var(--dash-loading-size, 12px) - 2px) / 2);
     background: currentcolor;
     border-radius: 100%;
     transform: scale(0.75);
@@ -106,19 +114,24 @@ html[data-dash-loading-theme="dark"] .dash-loading__content {
 .dash-loading__antd-dot i:nth-child(3) { right: 0; bottom: 0; animation-delay: 0.8s; }
 .dash-loading__antd-dot i:nth-child(4) { bottom: 0; left: 0; animation-delay: 1.2s; }
 
-.dash-loading--hide-default ~ #react-entry-point ._dash-loading,
-.dash-loading--hide-default ~ * ._dash-loading {
+._dash-loading {
     display: none !important;
 }
 
 html[data-dash-loading-theme="light"] .dash-loading {
-    color: var(--dash-loading-color, #1677ff);
     background: var(--dash-loading-background, #fff);
 }
 
 html[data-dash-loading-theme="dark"] .dash-loading {
-    color: var(--dash-loading-dark-color, #4096ff);
     background: var(--dash-loading-dark-background, #121212);
+}
+
+html[data-dash-loading-framework="mantine"][data-dash-loading-theme="light"] .dash-loading {
+    background: var(--dash-loading-mantine-light-background, var(--mantine-color-body, #fff));
+}
+
+html[data-dash-loading-framework="mantine"][data-dash-loading-theme="dark"] .dash-loading {
+    background: var(--dash-loading-mantine-dark-background, var(--mantine-color-body, #242424));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -130,6 +143,10 @@ html[data-dash-loading-theme="dark"] .dash-loading {
         animation-duration: 1.6s;
     }
 
+    .dash-loading__spinner {
+        animation-duration: 1.6s;
+    }
+
     .dash-loading__antd-dot,
     .dash-loading__antd-dot i {
         animation-duration: 1.6s;
@@ -137,6 +154,10 @@ html[data-dash-loading-theme="dark"] .dash-loading {
 }
 
 @keyframes dash-loading-ui-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes dash-loading-spin {
     to { transform: rotate(360deg); }
 }
 

@@ -18,20 +18,8 @@
         }
     }
 
-    function query(selector, root) {
-        if (!selector) {
-            return null;
-        }
-        try {
-            return (root || document).querySelector(selector);
-        } catch (error) {
-            warn("Invalid CSS selector: " + selector, error);
-            return null;
-        }
-    }
-
     function hasRenderedContent(root) {
-        if (!root || query("._dash-loading", root)) {
+        if (!root || root.querySelector("._dash-loading")) {
             return false;
         }
         return Array.prototype.some.call(root.childNodes, function (node) {
@@ -54,17 +42,7 @@
         }
 
         function isReady() {
-            var root = query(config.rootSelector || "#react-entry-point");
-            if (!hasRenderedContent(root)) {
-                return false;
-            }
-
-            var required = Array.isArray(config.requiredSelectors) ? config.requiredSelectors : [];
-            if (!required.every(function (selector) { return Boolean(query(selector)); })) {
-                return false;
-            }
-
-            return !config.pendingSelector || !query(config.pendingSelector, root);
+            return hasRenderedContent(document.querySelector("#react-entry-point"));
         }
 
         function cleanup() {

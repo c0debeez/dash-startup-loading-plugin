@@ -43,6 +43,11 @@
     }
 
     function rootTheme() {
+        var mantineScheme = normalize(root.getAttribute("data-mantine-color-scheme"));
+        if (mantineScheme) return mantineScheme;
+        if (root.getAttribute("data-mantine-color-scheme") === "loading" && root.classList.contains("auto")) {
+            return "system";
+        }
         if (root.classList.contains("dark")) return "dark";
         if (root.classList.contains("light")) return "light";
         return normalize(
@@ -51,10 +56,18 @@
         );
     }
 
+    function mantineStoredTheme() {
+        if (!config.mantineBundle && !root.hasAttribute("data-mantine-color-scheme")) {
+            return null;
+        }
+        try {
+            return normalize(parseStored(localStorage.getItem("mantine-color-scheme-value")));
+        } catch (_) {
+            return null;
+        }
+    }
+
     function dashPersistenceTheme() {
-        var id = config.dashThemeComponentId;
-        var exactPrefix = id ? persistencePrefix + id + ".theme." : null;
-        var fallback = null;
         try {
             for (var index = 0; index < localStorage.length; index += 1) {
                 var key = localStorage.key(index);
@@ -63,13 +76,12 @@
                 }
                 var theme = normalize(parseStored(localStorage.getItem(key)));
                 if (!theme) continue;
-                if (exactPrefix && key.indexOf(exactPrefix) === 0) return theme;
-                if (!fallback) fallback = theme;
+                return theme;
             }
         } catch (_) {
             return null;
         }
-        return fallback;
+        return null;
     }
 
     function conventionalStoredTheme() {
@@ -85,17 +97,38 @@
         return null;
     }
 
-    var configuredTheme = normalize(config.themeMode);
-    var theme = configuredTheme === "light" || configuredTheme === "dark" ? configuredTheme : null;
-    if (!theme && config.dashThemeComponentId) {
-        theme = dashPersistenceTheme();
-    }
-    if (!theme) {
-        theme = rootTheme() || dashPersistenceTheme() || conventionalStoredTheme() || "light";
-    }
-    if (theme === "system") {
-        theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    function applyTheme() {
+        var mantineStored = mantineStoredTheme();
+        var mantineDetected = root.hasAttribute("data-mantine-color-scheme")
+            || Boolean(config.mantineForcedColorScheme)
+            || (config.mantineBundle && Boolean(mantineStored));
+        if (mantineDetected) {
+            root.setAttribute("data-dash-loading-framework", "mantine");
+        } else {
+            root.removeAttribute("data-dash-loading-framework");
+        }
+
+        var configuredTheme = normalize(config.themeMode);
+        var theme = configuredTheme === "light" || configuredTheme === "dark" ? configuredTheme : null;
+        if (!theme) {
+            theme = normalize(config.mantineForcedColorScheme)
+                || rootTheme()
+                || mantineStored
+                || dashPersistenceTheme()
+                || conventionalStoredTheme()
+                || "light";
+        }
+        if (theme === "system") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        root.setAttribute("data-dash-loading-theme", theme);
     }
 
-    root.setAttribute("data-dash-loading-theme", theme);
+    applyTheme();
+    var observer = new MutationObserver(applyTheme);
+    observer.observe(root, {
+        attributes: true,
+        attributeFilter: ["data-mantine-color-scheme", "class", "data-theme", "data-color-scheme"]
+    });
+    window.addEventListener("dash-loading:ready", function () { observer.disconnect(); }, { once: true });
 }());

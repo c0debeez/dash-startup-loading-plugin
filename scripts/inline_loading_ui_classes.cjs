@@ -25,6 +25,34 @@ function reactProperty(property) {
 }
 
 const styles = Object.create(null);
+const customPropertyDefaults = Object.create(null);
+function collectCustomPropertyDefaults(cssText) {
+  const root = postcss.parse(cssText);
+  root.walkAtRules("property", (rule) => {
+    const initialValue = rule.nodes?.find(
+      (node) => node.type === "decl" && node.prop === "initial-value",
+    );
+    if (rule.params.startsWith("--") && initialValue) {
+      customPropertyDefaults[rule.params] = initialValue.value;
+    }
+  });
+  root.walkRules((rule) => {
+    if (!rule.selector.includes(":root") && !rule.selector.includes(":host")) return;
+    rule.walkDecls((declaration) => {
+      if (declaration.prop.startsWith("--")) {
+        customPropertyDefaults[declaration.prop] = declaration.value;
+      }
+    });
+  });
+}
+
+function inlineCustomPropertyDefault(value) {
+  const match = /^var\((--[^,)]+)\)$/.exec(value);
+  return match && customPropertyDefaults[match[1]] !== undefined
+    ? customPropertyDefaults[match[1]]
+    : value;
+}
+
 function collectStyles(cssText) {
   postcss.parse(cssText).walkRules((rule) => {
     selectorParser((selectors) => {
@@ -33,13 +61,17 @@ function collectStyles(cssText) {
         const name = selector.nodes[0].value;
         const declarations = (styles[name] ??= {});
         rule.walkDecls((declaration) => {
-          declarations[reactProperty(declaration.prop)] = declaration.value;
+          declarations[reactProperty(declaration.prop)] = inlineCustomPropertyDefault(
+            declaration.value,
+          );
         });
       });
     }).processSync(rule.selector);
   });
 }
-collectStyles(fs.readFileSync(cssFile, "utf8"));
+const generatedCss = fs.readFileSync(cssFile, "utf8");
+collectCustomPropertyDefaults(generatedCss);
+collectStyles(generatedCss);
 for (const file of fs.readdirSync(componentsDir).filter((name) => name.endsWith(".tsx"))) {
   const source = fs.readFileSync(path.join(componentsDir, file), "utf8");
   for (const match of source.matchAll(/<style>\s*\{\s*`([\s\S]*?)`\s*\}\s*<\/style>/g)) {

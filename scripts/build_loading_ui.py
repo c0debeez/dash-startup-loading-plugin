@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import tempfile
+import json
 from pathlib import Path
 
 UPSTREAM = "https://github.com/turbostarter/loading-ui.git"
@@ -26,6 +27,50 @@ PACKAGES = (
     "postcss-selector-parser@7.1.6",
 )
 OUTPUT = Path(__file__).resolve().parents[1] / "src/dash_startup_loading_plugin/resources"
+
+# Default geometry used by each component's official demo. Components omitted
+# here calculate their own intrinsic ch/em dimensions from their default props.
+COMPONENT_STYLES = {
+    "analyzing-image": {"width": "4rem", "height": "4rem"},
+    "arc": {"width": "3.5rem", "height": "3.5rem"},
+    "bars": {"width": "4rem", "height": "3rem"},
+    "bobbing-dots": {"width": "4rem"},
+    "bouncing-dots": {"width": "4rem"},
+    "classic": {"width": "4rem", "height": "4rem"},
+    "clock-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "comet-spinner": {"width": "3rem", "height": "3rem"},
+    "concentric-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "dash-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "diamond": {"width": "2.5rem", "height": "2.5rem"},
+    "dots-ring": {"width": "4rem", "height": "4rem"},
+    "dots": {"width": "4.5rem"},
+    "dual-arc": {"width": "3.5rem", "height": "3.5rem"},
+    "fade-arc": {"width": "3.75rem", "height": "3.75rem"},
+    "infinity": {"width": "5rem", "height": "4rem"},
+    "morphing-infinity": {"width": "6rem", "height": "6rem"},
+    "orbit-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "pulsating-dots": {"width": "4.5rem"},
+    "pulse-dot": {"width": "0.75rem", "height": "0.75rem"},
+    "pulse": {"width": "3.5rem", "height": "3.5rem"},
+    "quarter-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "ring": {"width": "4rem", "height": "4rem"},
+    "ripple": {"width": "3.5rem", "height": "3.5rem"},
+    "satellite-ring": {"width": "3.5rem", "height": "3.5rem"},
+    "skeleton": {"width": "4rem", "height": "4rem"},
+    "spiral": {"width": "4.5rem", "height": "4.5rem"},
+    "spokes": {"width": "4rem", "height": "4rem"},
+    "swirling": {"width": "6rem", "height": "6rem"},
+    "terminal": {"fontSize": "1.25rem"},
+    "text-blink": {"fontSize": "1.25rem"},
+    "text-dots": {"fontSize": "1.25rem", "fontWeight": "500"},
+    "text-shimmer-wave": {"fontSize": "1.25rem", "fontWeight": "500"},
+    "text-shimmer": {"fontSize": "1.25rem", "fontWeight": "500"},
+    "triple-dot-spinner": {"width": "0.875rem", "height": "0.875rem"},
+    "twin-orbit": {"width": "1.125rem", "height": "1.125rem"},
+    "typing": {"width": "4rem"},
+    "wandering-eyes": {"width": "180px", "height": "5rem"},
+    "wave": {"width": "6rem", "height": "3rem"},
+}
 
 
 def run(*args: str) -> None:
@@ -62,6 +107,7 @@ def main() -> None:
         lines.extend(f'  "{name}": {symbol},' for name, symbol in symbols.items())
         lines.extend([
             "};",
+            f"const componentStyles = {json.dumps(COMPONENT_STYLES, separators=(',', ':'))};",
             'const host = document.querySelector("[data-dash-loading-ui]") as HTMLElement | null;',
             "if (host) {",
             '  const selected = host.dataset.dashLoadingUi || "ring";',
@@ -69,14 +115,19 @@ def main() -> None:
             "  if (Component) {",
             '    const shadow = host.attachShadow({mode:"open"});',
             '    const style = document.createElement("style");',
-            '    style.textContent = ":host{display:inline-block;width:100%;height:100%;color:inherit} .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}" + css;',
+            '    style.textContent = ":host{display:inline-block;width:100%;height:100%;color:inherit} *,*::before,*::after{box-sizing:border-box;border-width:var(--dash-loading-ui-stroke,2px)!important} svg,svg *{stroke-width:var(--dash-loading-ui-stroke,2px)!important} .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}" + css;',
             "    shadow.appendChild(style);",
             '    const mount = document.createElement("span");',
-            '    mount.style.cssText = selected.startsWith("text-") ? "display:inline-block;width:auto;height:auto;min-width:6em" : "display:inline-block;width:var(--dash-loading-size,28px);height:var(--dash-loading-size,28px)";',
+            '    mount.style.cssText = "display:inline-flex;width:auto;height:auto";',
+            '    const componentStyle = componentStyles[selected] || {};',
+            '    Object.assign(mount.style, componentStyle);',
             "    shadow.appendChild(mount);",
-            '    const text = selected.startsWith("text-") ? "Loading" : undefined;',
-            '    const svgWithForwardedProps = ["diamond", "morphing-infinity", "swirling"].includes(selected);',
-            '    const props = svgWithForwardedProps ? {style: {width: "100%", height: "100%"}} : {className: text ? "inline-block" : "size-full", children: text};',
+            '    const text = selected.startsWith("text-") ? (host.dataset.dashLoadingText || "Loading") : undefined;',
+            '    const fillsMount = Boolean(componentStyle.width || componentStyle.height);',
+            '    const forwardsStyle = ["diamond", "morphing-infinity", "swirling"].includes(selected);',
+            '    const props = forwardsStyle && fillsMount',
+            '      ? {style: {width: "100%", height: "100%"}, children: text}',
+            '      : {className: fillsMount ? "size-full" : undefined, children: text};',
             '    createRoot(mount).render(React.createElement(Component, props));',
             "  }",
             "}",
@@ -85,7 +136,10 @@ def main() -> None:
         (build / "input.css").write_text(
             '@import "tailwindcss/utilities";\n'
             '@theme { --color-muted: currentColor; --radius-md: 4px; '
-            '--spacing: 0.25rem; --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.1); }\n'
+            '--spacing: 0.25rem; --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.1); '
+            '--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, '
+            '"Liberation Mono", "Courier New", monospace; '
+            '--text-xl: 1.25rem; --text-xl--line-height: 1.75rem; }\n'
             f'@source "{components}";\n',
             encoding="utf-8",
         )
