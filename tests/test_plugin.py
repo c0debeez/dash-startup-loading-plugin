@@ -455,7 +455,7 @@ def test_resource_names_drop_startup_and_preserve_dash_default_loading_selector(
 
     assert resource_names == {
         "loading.css", "loading.js", "loading-ui.js", "theme.js",
-        "LOADING-UI-LICENSE.md",
+        "LOADING-UI-LICENSE",
     }
     assert "startup" not in resource_text.lower()
     assert "._dash-loading" in resource_text

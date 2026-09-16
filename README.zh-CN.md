@@ -154,7 +154,7 @@ accordion-loader, analyzing-image, arc, bars, bobbing-dots, bouncing-dots, class
 setup(loader="spiral", loader_color="#e91e63", loader_dark_color="#ff80ab")
 ```
 
-`ring` 使用内联 SVG；其他 Loading UI loader 使用在 Dash 启动前加载、隔离渲染的内置资源。渲染开始前不会显示其他指示器。Loading UI loader 位于居中的 4:3 区域：640px 以下占全宽，640px 起占半宽，768px 起占三分之一，1024px 起占四分之一。每个 loader 均保留官方示例的尺寸规则：正方形图标使用文档中的 `size-*`，矩形 loader 保留官方宽高比，字符网格 loader 根据默认 props 计算固有的 `ch`/`em` 尺寸；文字类 loader 根据文字调整宽度。上游组件采用 MIT 许可；参见[打包的许可文件](src/dash_startup_loading_plugin/resources/LOADING-UI-LICENSE.md)。
+`ring` 使用内联 SVG；其他 Loading UI loader 使用在 Dash 启动前加载、隔离渲染的内置资源。渲染开始前不会显示其他指示器。Loading UI loader 位于居中的 4:3 区域：640px 以下占全宽，640px 起占半宽，768px 起占三分之一，1024px 起占四分之一。每个 loader 均保留官方示例的尺寸规则：正方形图标使用文档中的 `size-*`，矩形 loader 保留官方宽高比，字符网格 loader 根据默认 props 计算固有的 `ch`/`em` 尺寸；文字类 loader 根据文字调整宽度。上游组件采用 MIT 许可；参见[打包的许可文件](src/dash_startup_loading_plugin/resources/LOADING-UI-LICENSE)。
 
 ## Python API
 

@@ -153,7 +153,7 @@ def main() -> None:
             "--bundle", "--minify", "--format=iife", "--platform=browser",
             f"--alias:@/lib/utils={source / 'registry/lib/utils.ts'}", "--loader:.css=text",
             f"--outfile={OUTPUT / 'loading-ui.js'}")
-        shutil.copyfile(source / "LICENSE.md", OUTPUT / "LOADING-UI-LICENSE.md")
+        shutil.copyfile(source / "LICENSE.md", OUTPUT / "LOADING-UI-LICENSE")
 
 
 if __name__ == "__main__":

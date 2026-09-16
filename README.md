@@ -168,7 +168,7 @@ For example:
 setup(loader="spiral", loader_color="#e91e63", loader_dark_color="#ff80ab")
 ```
 
-`ring` uses an inline SVG; other Loading UI loaders use a bundled, isolated renderer loaded before Dash starts. No other indicator is shown while that renderer starts. Loading UI loaders sit in a centered 4:3 region that uses full width below 640px, half width from 640px, one-third from 768px, and one-quarter from 1024px. Each loader keeps the geometry from its official demo: square icons use their documented `size-*`, rectangular loaders keep their documented aspect ratio, and character-grid loaders derive intrinsic `ch`/`em` dimensions from their default props. Text loaders fit their text. The upstream components are MIT licensed; see [the bundled license](src/dash_startup_loading_plugin/resources/LOADING-UI-LICENSE.md).
+`ring` uses an inline SVG; other Loading UI loaders use a bundled, isolated renderer loaded before Dash starts. No other indicator is shown while that renderer starts. Loading UI loaders sit in a centered 4:3 region that uses full width below 640px, half width from 640px, one-third from 768px, and one-quarter from 1024px. Each loader keeps the geometry from its official demo: square icons use their documented `size-*`, rectangular loaders keep their documented aspect ratio, and character-grid loaders derive intrinsic `ch`/`em` dimensions from their default props. Text loaders fit their text. The upstream components are MIT licensed; see [the bundled license](src/dash_startup_loading_plugin/resources/LOADING-UI-LICENSE).
 
 ## Python API
 

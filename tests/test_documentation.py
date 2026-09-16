@@ -5,13 +5,15 @@ import tomllib
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_pypi_description_uses_english_readme():
+def test_pypi_description_does_not_package_a_readme():
     pyproject = tomllib.loads(
         (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
 
-    assert pyproject["project"]["readme"] == "README.md"
-    assert "An installable" in (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    assert pyproject["project"]["readme"] == {
+        "text": "An installable full-screen startup loading overlay for Dash apps.",
+        "content-type": "text/plain",
+    }
 
 
 def test_readmes_document_current_setup_and_installation():
@@ -63,25 +65,8 @@ def test_readmes_link_to_each_other():
         assert english_link in readme
 
 
-def test_packaged_chinese_readme_matches_project_readme():
-    project_readme = (PROJECT_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
-    packaged_readme = (
-        PROJECT_ROOT
-        / "src"
-        / "dash_startup_loading_plugin"
-        / "README.zh-CN.md"
-    ).read_text(encoding="utf-8")
+def test_package_does_not_duplicate_project_readmes():
+    package_root = PROJECT_ROOT / "src" / "dash_startup_loading_plugin"
 
-    assert packaged_readme == project_readme
-
-
-def test_packaged_english_readme_matches_project_readme():
-    project_readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-    packaged_readme = (
-        PROJECT_ROOT
-        / "src"
-        / "dash_startup_loading_plugin"
-        / "README.md"
-    ).read_text(encoding="utf-8")
-
-    assert packaged_readme == project_readme
+    assert not (package_root / "README.md").exists()
+    assert not (package_root / "README.zh-CN.md").exists()
