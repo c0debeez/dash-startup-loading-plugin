@@ -6,6 +6,13 @@
     place-items: center;
     overflow: hidden;
     background: var(--dash-loading-background, #fff);
+    opacity: 1;
+    transition: opacity var(--dash-loading-fade-duration, 0ms) ease-out;
+}
+
+.dash-loading[data-state="leaving"] {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .dash-loading__content {
@@ -133,6 +140,10 @@ html[data-dash-loading-framework="mantine"][data-dash-loading-theme="dark"] .das
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .dash-loading {
+        transition-duration: 0ms;
+    }
+
     .dash-loading__ring {
         animation-duration: 1.6s;
     }

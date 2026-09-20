@@ -20,7 +20,7 @@ document.
 ## Installation
 
 ```bash
-pip install "dash-startup-loading-plugin>=1.1.0"
+pip install "dash-startup-loading-plugin>=1.2.0"
 ```
 
 Dash discovers the plugin through its `dash_hooks` entry point. Installing the
@@ -66,6 +66,17 @@ setup(theme_mode="light")  # or "dark"
 
 An application preference explicitly set to `"system"` or `"auto"` still
 uses `prefers-color-scheme`.
+
+For an application that stores its preference inside a JSON object, configure
+the storage key and optional dotted path. The plugin reads it before React
+mounts and can synchronize Tailwind-compatible root classes:
+
+```python
+setup(
+    theme_store=("usage-preferences", "theme"),
+    sync_theme=True,
+)
+```
 
 ## Dash Mantine Components
 
@@ -113,12 +124,22 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 
 ## Dismissal behavior
 
-The plugin observes Dash's standard `#react-entry-point`. The overlay closes
-as soon as that root no longer contains `._dash-loading`. Dash controls this
-node throughout initialization and replaces it with the application layout
-when hydration completes. If Dash remains in its loading state, the configured
-loader remains visible; the plugin does not use a timeout or an artificial
-minimum display or fade duration.
+By default, the plugin preserves its original behavior: it observes Dash's
+standard `#react-entry-point` and closes the overlay when `._dash-loading`
+disappears. Applications whose initial callbacks apply a theme or settle a
+responsive layout can opt into additional readiness gates:
+
+```python
+setup(
+    wait_for="#app-sidebar",
+    timeout=3,
+)
+```
+
+`wait_for=True` waits for Dash's initial callbacks, fonts, and root layout to
+settle. A CSS selector or sequence of selectors adds those elements to the
+layout stability check. The timeout always releases the page if a callback,
+font, or selector never becomes ready.
 
 ## Configuration
 
@@ -126,7 +147,7 @@ minimum display or fade duration.
 `StartupLoadingConfig`.
 
 | Option | Default | Description |
-|---|---:|---|
+| --- | ---: | --- |
 | `enabled` | `True` | Enable index injection. |
 | `aria_label` | `"Loading"` | Accessible status label. |
 | `z_index` | `9999` | Overlay stacking order. |
@@ -140,6 +161,10 @@ minimum display or fade duration.
 | `loader_size` | `12` | Target loader width and height. The default and inline SVG ring render at 12px. Loading UI scales proportionally from its official 20px baseline, and `None` uses that baseline. |
 | `loader_stroke_width` | `2` | Border and SVG stroke width for the default, inline ring, and applicable Loading UI loaders. |
 | `custom_loader_html` | `None` | Trusted HTML replacing the default spinner. |
+| `theme_store` | `None` | localStorage key, or `(key, dotted_path)` for a theme nested in stored JSON. |
+| `sync_theme` | `False` | Synchronize `light` and `dark` classes and `color-scheme` before React mounts. |
+| `wait_for` | `False` | `True` enables startup settling; a selector or selector sequence also waits for those elements to stabilize. |
+| `timeout` | `3` | Maximum seconds to wait when `wait_for` is enabled. |
 
 `custom_loader_html` is inserted verbatim and must never contain untrusted
 user input.
@@ -185,6 +210,7 @@ from dash_startup_loading_plugin import (
 
 - Dash's hook and plugin configuration is process-wide. Use one configuration
   per process.
+- Readiness gates apply only to startup. Later callbacks do not recreate the overlay.
 - Resources are inlined, so strict Content Security Policy deployments must
   allow the injected style and script.
 - The overlay is only for initial application startup. Use `dcc.Loading` or

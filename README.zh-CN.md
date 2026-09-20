@@ -18,7 +18,7 @@
 ## 安装
 
 ```bash
-pip install "dash-startup-loading-plugin>=1.1.0"
+pip install "dash-startup-loading-plugin>=1.2.0"
 ```
 
 Dash 会通过 `dash_hooks` entry point 自动发现插件。安装后，默认 loading
@@ -60,6 +60,17 @@ setup(theme_mode="light")  # 或 "dark"
 
 如果应用主题偏好明确设置为 `"system"` 或 `"auto"`，插件仍会读取
 `prefers-color-scheme`。
+
+如果应用将主题偏好保存在 JSON 对象中，可以指定 localStorage key 和可选的
+点分字段路径。插件会在 React 挂载前读取该值，并可同步 Tailwind 兼容的根节点
+主题 class：
+
+```python
+setup(
+    theme_store=("usage-preferences", "theme"),
+    sync_theme=True,
+)
+```
 
 ## Dash Mantine Components
 
@@ -103,17 +114,27 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 
 ## 关闭时机
 
-插件观察 Dash 标准的 `#react-entry-point`，其中的 `._dash-loading`
-消失后立即关闭遮罩。Dash 会在初始化期间维护该节点，并在 hydration 完成时
-用应用布局替换它。如果 Dash 一直处于 loading 状态，配置的 loader 也会一直
-显示；插件不再设置超时、最短显示时间或淡出时长。
+默认情况下插件保持原有行为：观察 Dash 标准的 `#react-entry-point`，并在
+`._dash-loading` 消失后关闭遮罩。若应用通过初始 callback 设置主题或需要等待
+响应式布局稳定，可启用额外的就绪条件：
+
+```python
+setup(
+    wait_for="#app-sidebar",
+    timeout=3,
+)
+```
+
+`wait_for=True` 会等待 Dash 初始 callbacks、字体和根布局稳定；传入 CSS selector
+或 selector 序列时，还会等待这些元素尺寸稳定。如果 callback、字体或 selector
+始终无法就绪，超时机制仍会释放页面。
 
 ## 配置项
 
 `setup(**changes)` 会更新进程级、不可变的 `StartupLoadingConfig`。
 
 | 参数 | 默认值 | 说明 |
-|---|---:|---|
+| --- | ---: | --- |
 | `enabled` | `True` | 是否启用 index 注入。 |
 | `aria_label` | `"Loading"` | 无障碍状态标签。 |
 | `z_index` | `9999` | 遮罩层级。 |
@@ -127,6 +148,10 @@ setup(background="#f5f5f5", dark_background="#202020", loader="antd")
 | `loader_size` | `12` | loader 的目标宽高。默认 loader 和内联 SVG ring 渲染为 12px；Ant Design 在内部固定应用 20/12 的缩放比例，因此新的 12px 基准与原来 20px 的视觉大小一致，其他显式尺寸也按该基准同比缩放。Loading UI 从官方 20px 基准等比缩放，传入 `None` 使用该基准。 |
 | `loader_stroke_width` | `2` | 默认圆环、内联 ring 以及适用的 Loading UI loader 的边框和 SVG 描边宽度。 |
 | `custom_loader_html` | `None` | 替换默认 spinner 的可信 HTML。 |
+| `theme_store` | `None` | localStorage key；主题嵌套在 JSON 中时传入 `(key, dotted_path)`。 |
+| `sync_theme` | `False` | 在 React 挂载前同步 `light`、`dark` class 和 `color-scheme`。 |
+| `wait_for` | `False` | `True` 启用启动稳定检查；传入 selector 或序列时还会等待对应元素稳定。 |
+| `timeout` | `3` | 启用 `wait_for` 后的最大等待秒数。 |
 
 `custom_loader_html` 会原样插入页面，禁止传入任何不可信的用户输入。
 
@@ -170,6 +195,7 @@ from dash_startup_loading_plugin import (
 ## 注意事项
 
 - Dash hooks 和插件配置是进程级的，同一进程应共用一套配置。
+- 就绪条件只作用于首次启动，后续 callback 不会重新创建遮罩。
 - 资源以内联方式注入；严格 CSP 部署需要允许相应的 style 和 script。
 - 本插件只处理应用初始启动。后续 callback loading 请使用 `dcc.Loading`
   或其他针对 callback 的方案。

@@ -23,6 +23,9 @@ _HEAD_END_PATTERN = re.compile(r"</head\s*>", flags=re.IGNORECASE)
 _CONFIG_LOCK = RLock()
 _DASH_APPS_BY_SERVER: WeakKeyDictionary[Any, list[Any]] = WeakKeyDictionary()
 _explicit_options: frozenset[str] = frozenset()
+_SETTLE_FRAMES = 2
+_SETTLE_MS = 80
+_FADE_DURATION_MS = 120
 
 LoaderName = Literal[
     "default",
@@ -98,6 +101,10 @@ class SetupOptions(TypedDict, total=False):
     loader_size: int | None
     loader_stroke_width: int
     custom_loader_html: str | None
+    theme_store: str | tuple[str, str] | None
+    sync_theme: bool
+    wait_for: bool | str | list[str] | tuple[str, ...]
+    timeout: float
 
 
 @dataclass(frozen=True)
@@ -121,6 +128,10 @@ class StartupLoadingConfig:
     loader_size: int | None = 12
     loader_stroke_width: int = 2
     custom_loader_html: str | None = None
+    theme_store: tuple[str, str | None] | None = None
+    sync_theme: bool = False
+    wait_for: bool | tuple[str, ...] = False
+    timeout: float = 3
 
 
 _DEFAULT_CONFIG = StartupLoadingConfig()
@@ -144,7 +155,39 @@ def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
         raise ValueError("loader_size must be greater than or equal to zero")
     if config.loader_stroke_width < 0:
         raise ValueError("loader_stroke_width must be greater than or equal to zero")
+    if config.theme_store is not None:
+        key, path = config.theme_store
+        if not key.strip() or (path is not None and not path.strip()):
+            raise ValueError("theme_store values must be non-empty strings")
+    if not isinstance(config.sync_theme, bool):
+        raise TypeError("sync_theme must be a boolean")
+    if not isinstance(config.wait_for, (bool, tuple)):
+        raise TypeError("wait_for must be a boolean, selector, or sequence of selectors")
+    if isinstance(config.wait_for, tuple) and not all(selector.strip() for selector in config.wait_for):
+        raise ValueError("wait_for must contain only non-empty selectors")
+    if not isinstance(config.timeout, (int, float)) or isinstance(config.timeout, bool) or config.timeout <= 0:
+        raise ValueError("timeout must be greater than zero")
     return config
+
+
+def _normalize_theme_store(value: object) -> tuple[str, str | None] | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return (value, None)
+    if isinstance(value, tuple) and len(value) == 2 and all(isinstance(part, str) for part in value):
+        return value
+    raise TypeError("theme_store must be a storage key or a (key, path) tuple")
+
+
+def _normalize_wait_for(value: object) -> bool | tuple[str, ...]:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, (list, tuple)) and all(isinstance(selector, str) for selector in value):
+        return tuple(value)
+    raise TypeError("wait_for must be a boolean, selector, or sequence of selectors")
 
 
 def setup(**changes: Unpack[SetupOptions]) -> StartupLoadingConfig:
@@ -161,6 +204,10 @@ def setup(**changes: Unpack[SetupOptions]) -> StartupLoadingConfig:
         raise TypeError(f"Unknown startup loading option(s): {names}")
     global _config, _explicit_options
     with _CONFIG_LOCK:
+        if "theme_store" in changes:
+            changes = cast(SetupOptions, {**changes, "theme_store": _normalize_theme_store(changes["theme_store"])})
+        if "wait_for" in changes:
+            changes = cast(SetupOptions, {**changes, "wait_for": _normalize_wait_for(changes["wait_for"])})
         _config = _validate(replace(_config, **changes))
         _explicit_options = _explicit_options.union(changes)
         return _config
@@ -224,6 +271,20 @@ def _theme_config(
         "themeMode": config.theme_mode,
         "mantineBundle": "dash_mantine_components" in app_index,
     }
+    if config.theme_store:
+        values["themeStore"] = [part for part in config.theme_store if part is not None]
+    if config.sync_theme:
+        values["syncTheme"] = True
+    if config.wait_for:
+        values.update(
+            {
+                "waitFor": list(config.wait_for) if isinstance(config.wait_for, tuple) else True,
+                "settleFrames": _SETTLE_FRAMES,
+                "settleMs": _SETTLE_MS,
+                "fadeDurationMs": _FADE_DURATION_MS,
+                "timeoutMs": round(config.timeout * 1000),
+            }
+        )
     forced_scheme = _mantine_forced_color_scheme(layout)
     if forced_scheme:
         values["mantineForcedColorScheme"] = forced_scheme
@@ -255,11 +316,7 @@ def _overlay_html(
     else:
         spinner_size = "20px"
         spinner_scale = 1
-    loading_ui_stroke = (
-        config.loader_stroke_width / spinner_scale
-        if spinner_scale > 0
-        else config.loader_stroke_width
-    )
+    loading_ui_stroke = config.loader_stroke_width / spinner_scale if spinner_scale > 0 else config.loader_stroke_width
     styles = {
         "--dash-loading-background": config.background,
         "--dash-loading-dark-background": config.dark_background,
@@ -271,6 +328,7 @@ def _overlay_html(
         "--dash-loading-stroke": f"{config.loader_stroke_width}px",
         "--dash-loading-ui-stroke": f"{loading_ui_stroke:g}px",
         "--dash-loading-z-index": str(config.z_index),
+        "--dash-loading-fade-duration": f"{_FADE_DURATION_MS if config.wait_for else 0}ms",
     }
     if config.background != _DEFAULT_CONFIG.background:
         styles["--dash-loading-mantine-light-background"] = config.background
@@ -281,15 +339,15 @@ def _overlay_html(
         '<svg class="dash-loading__ring" viewBox="0 0 24 24" fill="none" '
         'aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'
         '<path d="M21 12.0004C20.9999 13.901 20.3981 15.7528 19.2809 17.2904'
-        'C18.1637 18.8279 16.5885 19.9723 14.7809 20.5596'
-        'C12.9733 21.1469 11.0262 21.1468 9.21864 20.5594'
-        'C7.41109 19.9721 5.83588 18.8276 4.71876 17.29'
-        'C3.60165 15.7523 2.99999 13.9005 3 11.9999'
-        'C3.00001 10.0993 3.60171 8.24755 4.71884 6.70994'
-        'C5.83598 5.17233 7.4112 4.02785 9.21877 3.44052'
+        "C18.1637 18.8279 16.5885 19.9723 14.7809 20.5596"
+        "C12.9733 21.1469 11.0262 21.1468 9.21864 20.5594"
+        "C7.41109 19.9721 5.83588 18.8276 4.71876 17.29"
+        "C3.60165 15.7523 2.99999 13.9005 3 11.9999"
+        "C3.00001 10.0993 3.60171 8.24755 4.71884 6.70994"
+        "C5.83598 5.17233 7.4112 4.02785 9.21877 3.44052"
         'C11.0263 2.85319 12.9734 2.85316 14.781 3.44044" '
         'stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>'
-        '</svg>'
+        "</svg>"
     )
     loader_html = config.custom_loader_html
     if loader_html is None:
@@ -299,8 +357,8 @@ def _overlay_html(
             loader_html = (
                 '<span class="dash-loading__antd-spinner" aria-hidden="true">'
                 '<span class="dash-loading__antd-dot">'
-                '<i></i><i></i><i></i><i></i>'
-                '</span></span>'
+                "<i></i><i></i><i></i><i></i>"
+                "</span></span>"
             )
         elif selected_loader == "ring":
             loader_html = ring
@@ -370,18 +428,10 @@ def _inject_overlay(app_index: str, layout: Any = None) -> str:
     assert body_match is not None
     position = body_match.end()
     dash_antd_bundle = "dash_antd_components" in app_index
-    loader = (
-        "antd"
-        if dash_antd_bundle and "loader" not in explicit_options
-        else config.loader
-    )
+    loader = "antd" if dash_antd_bundle and "loader" not in explicit_options else config.loader
     scripts = ""
     if config.custom_loader_html is None and loader in _LOADING_UI_LOADERS - {"ring"}:
-        scripts += (
-            '<script data-dash-loading-resource="loading-ui">'
-            f'{_resource_text("loading-ui.js")}'
-            '</script>'
-        )
+        scripts += f'<script data-dash-loading-resource="loading-ui">{_resource_text("loading-ui.js")}</script>'
     scripts += f'<script data-dash-loading-resource="script">{_resource_text("loading.js")}</script>'
     return app_index[:position] + _overlay_html(config, loader) + scripts + app_index[position:]
 
@@ -393,11 +443,7 @@ def _current_app_layout() -> Any:
         apps = [app for app in registered if app is not None]
         if apps:
             path = request.path
-            matches = [
-                app
-                for app in apps
-                if path.startswith(app.config.routes_pathname_prefix)
-            ]
+            matches = [app for app in apps if path.startswith(app.config.routes_pathname_prefix)]
             selected = max(
                 matches or apps,
                 key=lambda app: len(app.config.routes_pathname_prefix),

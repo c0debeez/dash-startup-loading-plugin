@@ -97,6 +97,32 @@
         return null;
     }
 
+    function configuredStoredTheme() {
+        if (!Array.isArray(config.themeStore) || !config.themeStore[0]) {
+            return null;
+        }
+        try {
+            var value = parseStored(localStorage.getItem(config.themeStore[0]));
+            if (config.themeStore[1]) {
+                value = config.themeStore[1].split(".").reduce(function (current, part) {
+                    return current && typeof current === "object" ? current[part] : null;
+                }, value);
+            }
+            return normalize(value);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function syncRootTheme(theme) {
+        if (!config.syncTheme) {
+            return;
+        }
+        root.classList.toggle("dark", theme === "dark");
+        root.classList.toggle("light", theme === "light");
+        root.style.colorScheme = theme;
+    }
+
     function applyTheme() {
         var mantineStored = mantineStoredTheme();
         var mantineDetected = root.hasAttribute("data-mantine-color-scheme")
@@ -111,7 +137,8 @@
         var configuredTheme = normalize(config.themeMode);
         var theme = configuredTheme === "light" || configuredTheme === "dark" ? configuredTheme : null;
         if (!theme) {
-            theme = normalize(config.mantineForcedColorScheme)
+            theme = configuredStoredTheme()
+                || normalize(config.mantineForcedColorScheme)
                 || rootTheme()
                 || mantineStored
                 || dashPersistenceTheme()
@@ -122,13 +149,19 @@
             theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         }
         root.setAttribute("data-dash-loading-theme", theme);
+        syncRootTheme(theme);
     }
 
     applyTheme();
     var observer = new MutationObserver(applyTheme);
+    var media = window.matchMedia("(prefers-color-scheme: dark)");
     observer.observe(root, {
         attributes: true,
         attributeFilter: ["data-mantine-color-scheme", "class", "data-theme", "data-color-scheme"]
     });
-    window.addEventListener("dash-loading:ready", function () { observer.disconnect(); }, { once: true });
+    media.addEventListener("change", applyTheme);
+    window.addEventListener("dash-loading:ready", function () {
+        observer.disconnect();
+        media.removeEventListener("change", applyTheme);
+    }, { once: true });
 }());
