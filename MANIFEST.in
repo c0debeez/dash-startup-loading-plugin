@@ -1,2 +1,1 @@
 prune tests
-global-exclude *.md

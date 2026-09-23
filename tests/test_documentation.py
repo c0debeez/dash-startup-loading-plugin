@@ -5,13 +5,13 @@ import tomllib
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_pypi_description_does_not_package_a_readme():
-    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+def test_pypi_metadata_references_the_project_readme():
+    pyproject = tomllib.loads(
+        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
 
-    assert pyproject["project"]["readme"] == {
-        "text": "An installable full-screen startup loading overlay for Dash apps.",
-        "content-type": "text/plain",
-    }
+    assert pyproject["project"]["readme"] == "README.md"
+    assert (PROJECT_ROOT / pyproject["project"]["readme"]).is_file()
 
 
 def test_readmes_document_current_setup_and_installation():
@@ -30,10 +30,11 @@ def test_readmes_document_current_setup_and_installation():
         assert "loader_size" in readme
         assert "loader_stroke_width" in readme
         assert "loader_text" in readme
-        assert 'theme_store=("usage-preferences", "theme")' in readme
-        assert "sync_theme=True" in readme
-        assert 'wait_for="#app-sidebar"' in readme
-        assert "timeout=3" in readme
+        assert "html.dark" in readme
+        assert "theme_store" not in readme
+        assert "sync_theme" not in readme
+        assert "wait_for" not in readme
+        assert "timeout" not in readme
         assert "theme_storage_key" not in readme
         assert "wait_for_initial_callbacks" not in readme
         assert "stabilize_selectors" not in readme
@@ -41,10 +42,13 @@ def test_readmes_document_current_setup_and_installation():
         assert "usage-header" not in readme
         assert "usage-sidebar-menu" not in readme
         assert "dash-ant-design  # Python 3.10+" not in readme
-        assert 'theme_mode="auto"' in readme
-        assert 'theme_mode="light"' in readme
+        assert "index_string" in readme
+        assert "prefers-color-scheme" in readme
         assert "dash_theme_component_id" not in readme
         assert 'setup(loader="antd")' in readme
+        assert "automatically uses the `antd`" not in readme
+        assert "自动使用\n`antd` loader" not in readme
+        assert "LOADING-UI-LICENSE" not in readme
         assert "dash-startup-loading-plugin examples." not in readme
         assert "Installed examples" not in readme
         assert "内置示例" not in readme

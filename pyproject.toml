@@ -1,24 +1,28 @@
 [build-system]
-requires = ["setuptools>=69"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dash-startup-loading-plugin"
-version = "1.2.0"
+version = "2.0.0rc1"
 description = "A configurable full-screen startup loading overlay for Dash apps, packaged as a Dash Hooks plugin."
-readme = { text = "An installable full-screen startup loading overlay for Dash apps.", content-type = "text/plain" }
+readme = "README.md"
 requires-python = ">=3.9"
-authors = [
-      { name = "Ethan Zhang", email = "ethan.zhang2016@gmail.com" }
-]
+authors = [{ name = "Ethan Zhang", email = "ethan.zhang2016@gmail.com" }]
 keywords = ["dash", "plotly", "loading", "plugin"]
-classifiers = ["Framework :: Dash"]
+classifiers = [
+	"Framework :: Dash",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3 :: Only",
+	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3.13",
+]
 license = "MIT"
 license-files = ["LICENSE"]
-dependencies = [
-    "dash>=3.0.3",
-    "typing-extensions>=4.11",
-]
+dependencies = ["dash>=3.0.3", "typing-extensions>=4.11"]
 
 [project.urls]
 "Homepage" = "https://github.com/c0debeez/dash-startup-loading-plugin"
@@ -27,15 +31,13 @@ dependencies = [
 
 
 [dependency-groups]
-test = [
-    "pytest>=8",
-]
+test = ["pytest>=8"]
 
 [project.entry-points."dash_hooks"]
 dash_startup_loading_plugin = "dash_startup_loading_plugin"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 include-package-data = true
 
 [tool.setuptools.packages.find]
@@ -43,10 +45,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 dash_startup_loading_plugin = [
-    "resources/*.css",
-    "resources/*.js",
-    "resources/LOADING-UI-LICENSE",
-    "py.typed",
+	"resources/startup-loading.js",
+	"resources/loading-ui/*.js",
+	"py.typed",
 ]
 
 [tool.pytest.ini_options]

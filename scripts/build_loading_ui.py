@@ -1,11 +1,16 @@
-"""Rebuild the bundled Loading UI renderer from the pinned MIT-licensed source."""
+"""Rebuild the bundled Loading UI renderers from the pinned MIT-licensed source.
+
+One self-contained IIFE bundle is emitted per loader so that a Dash index only
+ever inlines the renderer it actually uses.
+"""
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
+import sys
 import tempfile
-import json
 from pathlib import Path
 
 UPSTREAM = "https://github.com/turbostarter/loading-ui.git"
@@ -26,7 +31,9 @@ PACKAGES = (
     "postcss@8.5.28",
     "postcss-selector-parser@7.1.6",
 )
-OUTPUT = Path(__file__).resolve().parents[1] / "src/dash_startup_loading_plugin/resources"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RUNTIME = PROJECT_ROOT / "scripts/runtime"
+OUTPUT = RUNTIME / "loading-ui"
 
 # Default geometry used by each component's official demo. Components omitted
 # here calculate their own intrinsic ch/em dimensions from their default props.
@@ -72,9 +79,45 @@ COMPONENT_STYLES = {
     "wave": {"width": "6rem", "height": "3rem"},
 }
 
+# Loaders whose root element is sized through ``style`` rather than a class.
+FORWARDS_STYLE = frozenset({"diamond", "morphing-infinity", "swirling"})
+
+TAILWIND_THEME = (
+    '@import "tailwindcss/utilities";\n'
+    "@theme { --color-muted: currentColor; --radius-md: 4px; "
+    "--spacing: 0.25rem; --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.1); "
+    "--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "
+    '"Liberation Mono", "Courier New", monospace; '
+    "--text-xl: 1.25rem; --text-xl--line-height: 1.75rem; }\n"
+)
+
 
 def run(*args: str) -> None:
     subprocess.run(args, check=True)
+
+
+def component_symbol(stem: str) -> str:
+    """Return the React symbol exported by a loader source file."""
+
+    if stem == "infinity":
+        return "InfinityLoop"
+    return "".join(part.title() for part in stem.split("-"))
+
+
+def entry_source(name: str, component: Path, mount_module: Path) -> str:
+    symbol = component_symbol(name)
+    return (
+        f'import {{ {symbol} }} from "{component}";\n'
+        f'import {{ mount }} from "{mount_module}";\n'
+        'import css from "./loading-ui.css";\n'
+        "mount({\n"
+        f"  component: {symbol},\n"
+        "  css,\n"
+        f"  geometry: {json.dumps(COMPONENT_STYLES.get(name, {}), separators=(',', ':'))},\n"
+        f"  usesText: {json.dumps(name.startswith('text-'))},\n"
+        f"  forwardsStyle: {json.dumps(name in FORWARDS_STYLE)},\n"
+        "});\n"
+    )
 
 
 def main() -> None:
@@ -86,74 +129,76 @@ def main() -> None:
         run("git", "clone", "--filter=blob:none", UPSTREAM, str(source))
         run("git", "-C", str(source), "checkout", COMMIT)
         (build / "package.json").write_text('{"private":true}', encoding="utf-8")
-        run("npm", "install", "--prefix", str(build), "--no-audit", "--no-fund", *PACKAGES)
-        (source / "node_modules").symlink_to(build / "node_modules", target_is_directory=True)
+        run(
+            "npm",
+            "install",
+            "--prefix",
+            str(build),
+            "--no-audit",
+            "--no-fund",
+            *PACKAGES,
+        )
+        (source / "node_modules").symlink_to(
+            build / "node_modules", target_is_directory=True
+        )
 
         components = source / "registry/components/loading-ui"
-        component_files = sorted(components.glob("*.tsx"))
-        lines = [
-            'import React from "react";',
-            'import { createRoot } from "react-dom/client";',
-            'import css from "./loading-ui.css";',
-        ]
-        symbols = {}
-        for path in component_files:
-            symbol = "InfinityLoop" if path.stem == "infinity" else "".join(
-                part.title() for part in path.stem.split("-")
-            )
-            symbols[path.stem] = symbol
-            lines.append(f'import {{ {symbol} }} from "{path}";')
-        lines.append("const components: Record<string, React.ComponentType<any>> = {")
-        lines.extend(f'  "{name}": {symbol},' for name, symbol in symbols.items())
-        lines.extend([
-            "};",
-            f"const componentStyles = {json.dumps(COMPONENT_STYLES, separators=(',', ':'))};",
-            'const host = document.querySelector("[data-dash-loading-ui]") as HTMLElement | null;',
-            "if (host) {",
-            '  const selected = host.dataset.dashLoadingUi || "ring";',
-            "  const Component = components[selected];",
-            "  if (Component) {",
-            '    const shadow = host.attachShadow({mode:"open"});',
-            '    const style = document.createElement("style");',
-            '    style.textContent = ":host{display:inline-block;width:100%;height:100%;color:inherit} *,*::before,*::after{box-sizing:border-box;border-width:var(--dash-loading-ui-stroke,2px)!important} svg,svg *{stroke-width:var(--dash-loading-ui-stroke,2px)!important} .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}" + css;',
-            "    shadow.appendChild(style);",
-            '    const mount = document.createElement("span");',
-            '    mount.style.cssText = "display:inline-flex;width:auto;height:auto";',
-            '    const componentStyle = componentStyles[selected] || {};',
-            '    Object.assign(mount.style, componentStyle);',
-            "    shadow.appendChild(mount);",
-            '    const text = selected.startsWith("text-") ? (host.dataset.dashLoadingText || "Loading") : undefined;',
-            '    const fillsMount = Boolean(componentStyle.width || componentStyle.height);',
-            '    const forwardsStyle = ["diamond", "morphing-infinity", "swirling"].includes(selected);',
-            '    const props = forwardsStyle && fillsMount',
-            '      ? {style: {width: "100%", height: "100%"}, children: text}',
-            '      : {className: fillsMount ? "size-full" : undefined, children: text};',
-            '    createRoot(mount).render(React.createElement(Component, props));',
-            "  }",
-            "}",
-        ])
-        (build / "entry.tsx").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        stylesheet = build / "loading-ui.css"
         (build / "input.css").write_text(
-            '@import "tailwindcss/utilities";\n'
-            '@theme { --color-muted: currentColor; --radius-md: 4px; '
-            '--spacing: 0.25rem; --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.1); '
-            '--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, '
-            '"Liberation Mono", "Courier New", monospace; '
-            '--text-xl: 1.25rem; --text-xl--line-height: 1.75rem; }\n'
-            f'@source "{components}";\n',
-            encoding="utf-8",
+            f'{TAILWIND_THEME}@source "{components}";\n', encoding="utf-8"
         )
-        run(str(build / "node_modules/.bin/tailwindcss"), "-i", str(build / "input.css"),
-            "-o", str(build / "loading-ui.css"), "--minify")
+        run(
+            str(build / "node_modules/.bin/tailwindcss"),
+            "-i",
+            str(build / "input.css"),
+            "-o",
+            str(stylesheet),
+            "--minify",
+        )
+
         transformer = build / "inline_loading_ui_classes.cjs"
-        shutil.copyfile(Path(__file__).with_name("inline_loading_ui_classes.cjs"), transformer)
-        run("node", str(transformer), str(components), str(build / "loading-ui.css"),
-            str(build / "loader-class-styles.ts"))
-        run(str(build / "node_modules/.bin/esbuild"), str(build / "entry.tsx"),
-            "--bundle", "--minify", "--format=iife", "--platform=browser",
-            f"--alias:@/lib/utils={source / 'registry/lib/utils.ts'}", "--loader:.css=text",
-            f"--outfile={OUTPUT / 'loading-ui.js'}")
-        shutil.copyfile(source / "LICENSE.md", OUTPUT / "LOADING-UI-LICENSE")
+        shutil.copyfile(
+            Path(__file__).with_name("inline_loading_ui_classes.cjs"), transformer
+        )
+        run(
+            "node",
+            str(transformer),
+            str(components),
+            str(stylesheet),
+            str(build / "loader-class-styles.ts"),
+        )
+
+        mount_module = build / "mount.ts"
+        shutil.copyfile(RUNTIME / "mount.ts", mount_module)
+        entries = build / "entries"
+        entries.mkdir()
+        shutil.copyfile(stylesheet, entries / "loading-ui.css")
+        names = sorted(path.stem for path in components.glob("*.tsx"))
+        for name in names:
+            (entries / f"{name}.tsx").write_text(
+                entry_source(name, components / f"{name}.tsx", mount_module),
+                encoding="utf-8",
+            )
+
+        shutil.rmtree(OUTPUT, ignore_errors=True)
+        OUTPUT.mkdir(parents=True)
+        run(
+            str(build / "node_modules/.bin/esbuild"),
+            *(str(entries / f"{name}.tsx") for name in names),
+            "--bundle",
+            "--minify",
+            "--legal-comments=none",
+            "--format=iife",
+            "--platform=browser",
+            f"--alias:@/lib/utils={source / 'registry/lib/utils.ts'}",
+            "--loader:.css=text",
+            f"--outdir={OUTPUT}",
+        )
+
+    subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scripts/build_startup_runtime.py")],
+        check=True,
+    )
 
 
 if __name__ == "__main__":
