@@ -13,7 +13,7 @@
 ## 安装
 
 ```bash
-pip install "dash-startup-loading-plugin>=2.0.0rc1"
+pip install "dash-startup-loading-plugin>=2.0.0"
 ```
 
 Dash 会通过 `dash_hooks` entry point 自动发现插件，安装后默认 loading 遮罩会自动启用。
