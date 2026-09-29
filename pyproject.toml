@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dash-startup-loading-plugin"
-version = "2.0.0rc1"
+version = "2.0.1"
 description = "A configurable full-screen startup loading overlay for Dash apps, packaged as a Dash Hooks plugin."
 readme = "README.md"
 requires-python = ">=3.9"

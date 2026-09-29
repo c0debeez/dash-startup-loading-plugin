@@ -21,18 +21,12 @@ def restore_defaults():
 
 
 def startup_runtime() -> str:
-    return (
-        files("dash_startup_loading_plugin")
-        .joinpath("resources/startup-loading.js")
-        .read_text(encoding="utf-8")
-    )
+    return files("dash_startup_loading_plugin").joinpath("resources/startup-loading.js").read_text(encoding="utf-8")
 
 
 def loading_ui_runtime(loader: str) -> str:
     return (
-        files("dash_startup_loading_plugin")
-        .joinpath(f"resources/loading-ui/{loader}.js")
-        .read_text(encoding="utf-8")
+        files("dash_startup_loading_plugin").joinpath(f"resources/loading-ui/{loader}.js").read_text(encoding="utf-8")
     )
 
 
@@ -47,26 +41,18 @@ def test_injects_overlay_after_body_with_custom_attributes():
     result = _inject_overlay(index)
 
     assert '<script data-dash-loading-resource="startup">' in result
-    assert result.index('data-dash-loading-resource="startup"') < result.index(
-        "</head>"
-    )
+    assert result.index('data-dash-loading-resource="startup"') < result.index("</head>")
     assert '<body class="app"><div class="dash-loading"' in result
-    assert (
-        "if (window.__dashStartupLoadingStart){window.__dashStartupLoadingStart()}" in result
-    )
-    assert result.index('class="dash-loading"') < result.rindex(
-        "window.__dashStartupLoadingStart"
-    )
+    assert "if (window.__dashStartupLoadingStart){window.__dashStartupLoadingStart()}" in result
+    assert result.index('class="dash-loading"') < result.rindex("window.__dashStartupLoadingStart")
     assert result.count(" data-dash-loading ") == 1
-    assert (
-        '<span class="dash-loading__spinner" aria-hidden="true"></span>' not in result
-    )
+    assert '<span class="dash-loading__spinner" aria-hidden="true"></span>' not in result
     assert '<span class="dash-loading__antd-dot">' not in result
     assert 'data-dash-loading-resource="loading-ui"' in result
     assert "--dash-loading-size:64px" in result
     assert "--dash-loading-stroke:2px" in result
-    assert "--dash-loading-background" not in result
-    assert "--dash-loading-dark-background" not in result
+    assert "--dash-loading-background:#f5f5f5" in result
+    assert "--dash-loading-dark-background:#000" in result
     assert "--dash-loading-loader-color:#1677ff" in result
     assert "--dash-loading-loader-dark-color:#1668dc" in result
     assert "--dash-loading-loader-text-color:rgba(0,0,0,0.88)" in result
@@ -163,9 +149,7 @@ def test_invalid_loader_is_rejected():
         setup(loader="unknown")
 
 
-@pytest.mark.parametrize(
-    "name", ["spokes", "classic", "dots-ring", "spiral", "wave", "text-shimmer"]
-)
+@pytest.mark.parametrize("name", ["spokes", "classic", "dots-ring", "spiral", "wave", "text-shimmer"])
 def test_loading_ui_loader_is_mounted_before_dash_runtime(name):
     setup(loader=name, loader_color="#e91e63", loader_dark_color="#ff80ab")
 
@@ -272,7 +256,7 @@ def test_dash_antd_bundle_does_not_read_config_provider_tokens():
 
     result = _inject_overlay(index)
 
-    assert "--dash-loading-background" not in result
+    assert "--dash-loading-background:#f5f5f5" in result
     assert "--dash-loading-loader-color:#1677ff" in result
     assert "--dash-loading-loader-text-color:rgba(0,0,0,0.88)" in result
 
@@ -285,7 +269,7 @@ def test_dash_antd_dark_algorithm_does_not_change_plugin_defaults():
 
     result = _inject_overlay(index)
 
-    assert "--dash-loading-background" not in result
+    assert "--dash-loading-background:#f5f5f5" in result
     assert "--dash-loading-loader-color:#1677ff" in result
     assert "--dash-loading-loader-text-color:rgba(0,0,0,0.88)" in result
 
@@ -392,8 +376,6 @@ def test_custom_html_skips_loading_ui_runtime():
         "settle_ms",
         "fade_duration_ms",
         "ready_timeout_ms",
-        "background",
-        "dark_background",
     ],
 )
 def test_removed_configuration_options_are_rejected(removed_option):
@@ -402,6 +384,10 @@ def test_removed_configuration_options_are_rejected(removed_option):
 
 
 def test_configuration_validation():
+    for name in ("background", "dark_background"):
+        for invalid_value in (None, " "):
+            with pytest.raises(ValueError, match=name):
+                setup(**{name: invalid_value})
     with pytest.raises(TypeError, match="theme_mode"):
         setup(theme_mode="sepia")
     with pytest.raises(ValueError, match="loader_text"):
@@ -434,12 +420,19 @@ def test_setup_rejects_removed_theme_and_wait_options():
             setup(**{name: True})
 
 
-def test_resolved_theme_controls_overlay_colors():
+def test_background_options_control_overlay_colors():
+    setup(background="#fafafa", dark_background="#111111")
+    result = _inject_overlay("<html><body></body></html>")
     runtime = startup_runtime()
 
+    assert get_config().background == "#fafafa"
+    assert get_config().dark_background == "#111111"
+    assert "--dash-loading-background:#fafafa" in result
+    assert "--dash-loading-dark-background:#111111" in result
     assert "html.dark .dash-loading" in runtime
-    assert "background:var(--layout-bg,#111825)" in runtime
-    assert "--dash-loading-dark-background" not in runtime
+    assert "background:var(--dash-loading-background,#f5f5f5)" in runtime
+    assert "background:var(--dash-loading-dark-background,#000)" in runtime
+    assert "--layout-bg" not in runtime
 
 
 def test_theme_bootstrap_supports_dash_and_tailwind_conventions():
@@ -463,12 +456,8 @@ def test_runtime_does_not_include_framework_specific_compatibility():
 
 def test_resources_contain_only_the_bundled_startup_runtime():
     resources = files("dash_startup_loading_plugin").joinpath("resources")
-    resource_names = {
-        resource.name for resource in resources.iterdir() if resource.is_file()
-    }
-    loader_names = {
-        resource.name for resource in resources.joinpath("loading-ui").iterdir()
-    }
+    resource_names = {resource.name for resource in resources.iterdir() if resource.is_file()}
+    loader_names = {resource.name for resource in resources.joinpath("loading-ui").iterdir()}
     resource_text = startup_runtime()
 
     assert resource_names == {"startup-loading.js"}
@@ -486,9 +475,7 @@ def test_only_the_selected_loader_is_requested_by_the_index():
 
     index = client.get("/").get_data(as_text=True)
 
-    assert (
-        f'src="/_dash-startup-loading/wave.js?v={loading_plugin.__version__}"' in index
-    )
+    assert f'src="/_dash-startup-loading/wave.js?v={loading_plugin.__version__}"' in index
     assert "ring.js" not in index
     for loader in ("spiral", "text-shimmer"):
         assert f"{loader}.js" not in index

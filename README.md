@@ -20,7 +20,7 @@ document.
 ## Installation
 
 ```bash
-pip install "dash-startup-loading-plugin>=2.0.0"
+pip install "dash-startup-loading-plugin>=2.0.1"
 ```
 
 Dash discovers the plugin through its `dash_hooks` entry point. Installing the
@@ -132,6 +132,8 @@ and callbacks.
 | `enabled` | `True` | Enable index injection. |
 | `aria_label` | `"Loading"` | Accessible status label. |
 | `z_index` | `9999` | Overlay stacking order. |
+| `background` | `#f5f5f5` | Overlay background in light mode. |
+| `dark_background` | `#000` | Overlay background when `html.dark` is set. |
 | `loader_color` | `#1677ff` | Loader color in light mode. |
 | `loader_dark_color` | `#1668dc` | Loader color in dark mode. |
 | `loader_text_color` | `rgba(0,0,0,0.88)` | Text color for `text-*` Loading UI loaders in light mode. |
@@ -152,7 +154,7 @@ four-dot loader, configure it explicitly:
 setup(loader="antd")
 ```
 
-The overlay background follows the application's `html.dark` class and `--layout-bg` CSS variable, with `#f5f5f5` and `#111825` fallbacks. The plugin does not inspect ConfigProvider tokens. Explicit color options always take precedence. Use `loader_size`, `loader_color`, `loader_dark_color`, `loader_text_color`, and `loader_dark_text_color` to match a customized theme. Use `loader_text` to replace the default text in `text-*` loaders:
+The overlay selects `background` or `dark_background` according to the application's `html.dark` class. It does not read `--layout-bg` or ConfigProvider tokens. Use `loader_size`, `loader_color`, `loader_dark_color`, `loader_text_color`, and `loader_dark_text_color` to match a customized theme. Use `loader_text` to replace the default text in `text-*` loaders:
 
 ```python
 setup(loader="text-shimmer", loader_text="Preparing dashboard")

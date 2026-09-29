@@ -209,7 +209,7 @@ wheels = [
 
 [[package]]
 name = "dash-startup-loading-plugin"
-version = "1.2.0"
+version = "2.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "dash" },

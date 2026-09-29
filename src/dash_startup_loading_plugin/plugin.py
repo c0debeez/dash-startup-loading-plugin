@@ -20,7 +20,7 @@ from typing_extensions import Unpack
 try:
     __version__ = version("dash-startup-loading-plugin")
 except PackageNotFoundError:  # pragma: no cover - source tree fallback
-    __version__ = "2.0.0rc1"
+    __version__ = "2.0.1"
 
 _OVERLAY_MARKER = "data-dash-loading"
 _BODY_PATTERN = re.compile(r"<body(?:\s[^>]*)?>", flags=re.IGNORECASE)
@@ -137,6 +137,8 @@ class SetupOptions(TypedDict, total=False):
     enabled: bool
     aria_label: str
     z_index: int
+    background: str
+    dark_background: str
     loader_color: str | None
     loader_dark_color: str | None
     loader_text_color: str | None
@@ -159,6 +161,8 @@ class StartupLoadingConfig:
     enabled: bool = True
     aria_label: str = "Loading"
     z_index: int = 9999
+    background: str = "#f5f5f5"
+    dark_background: str = "#000"
     loader_color: str | None = None
     loader_dark_color: str | None = None
     loader_text_color: str | None = None
@@ -193,6 +197,10 @@ def _validate(config: StartupLoadingConfig) -> StartupLoadingConfig:
         raise ValueError("loader must be a Loading UI loader name, 'default', or 'antd'")
     if not isinstance(config.loader_text, str) or not config.loader_text.strip():
         raise ValueError("loader_text must be a non-empty string")
+    for name in ("background", "dark_background"):
+        value = getattr(config, name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{name} must be a non-empty CSS color")
     for name in _COLOR_OPTIONS:
         _validate_color(name, getattr(config, name))
     if config.loader_size is not None:
@@ -265,6 +273,8 @@ def _overlay_styles(config: StartupLoadingConfig, loader: str) -> dict[str, str]
     # Loading UI draws at its own baseline, so the stroke is pre-divided by the scale.
     loading_ui_stroke = config.loader_stroke_width / scale if scale > 0 else config.loader_stroke_width
     styles = {
+        "--dash-loading-background": config.background,
+        "--dash-loading-dark-background": config.dark_background,
         "--dash-loading-loader-color": visuals.loader_color,
         "--dash-loading-loader-dark-color": visuals.loader_dark_color,
         "--dash-loading-loader-text-color": visuals.text_color,

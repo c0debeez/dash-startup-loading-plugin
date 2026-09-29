@@ -19,14 +19,6 @@ def read(name: str) -> str:
 def main() -> None:
     css_source = (
         read("loading.css")
-        .replace(
-            "background:var(--dash-loading-background,#fff)",
-            "background:var(--layout-bg,#f5f5f5)",
-        )
-        .replace(
-            "background:var(--dash-loading-dark-background,#121212)",
-            "background:var(--layout-bg,#111825)",
-        )
         .replace("html[data-dash-loading-theme=dark]", "html.dark")
         .replace(
             "transform:scale(1.6666667);transform-origin:center",
@@ -41,7 +33,6 @@ def main() -> None:
     css = json.dumps(
         css_source
         + ".dash-loading__loading-ui[data-dash-loading-ui^=text-]{color:var(--dash-loading-loader-text-color,currentColor)}"
-        + "html.dark .dash-loading{background:var(--layout-bg,#111825)}"
         + "html.dark .dash-loading__loading-ui[data-dash-loading-ui^=text-]{color:var(--dash-loading-loader-dark-text-color,currentColor)}",
         ensure_ascii=False,
         separators=(",", ":"),

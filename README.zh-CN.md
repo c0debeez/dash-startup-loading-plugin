@@ -13,7 +13,7 @@
 ## 安装
 
 ```bash
-pip install "dash-startup-loading-plugin>=2.0.0"
+pip install "dash-startup-loading-plugin>=2.0.1"
 ```
 
 Dash 会通过 `dash_hooks` entry point 自动发现插件，安装后默认 loading 遮罩会自动启用。
@@ -109,6 +109,8 @@ setup(loader="antd")
 | `enabled` | `True` | 是否注入 startup overlay。 |
 | `aria_label` | `"Loading"` | 无障碍状态标签。 |
 | `z_index` | `9999` | 遮罩层级。 |
+| `background` | `#f5f5f5` | 亮色模式下的遮罩背景。 |
+| `dark_background` | `#000` | `html.dark` 下的遮罩背景。 |
 | `loader_color` | `#1677ff` | loader 亮色颜色。 |
 | `loader_dark_color` | `#1668dc` | loader 暗色颜色。 |
 | `loader_text_color` | `rgba(0,0,0,0.88)` | `text-*` loader 亮色文字颜色。 |
@@ -121,7 +123,7 @@ setup(loader="antd")
 
 `custom_loader_html` 会原样插入页面，禁止传入不可信用户输入。
 
-遮罩背景跟随应用的 `html.dark` class 和 `--layout-bg` CSS 变量，默认亮色和暗色回退值分别为 `#f5f5f5`、`#111825`。插件不会读取 ConfigProvider token。
+遮罩背景根据应用的 `html.dark` class 选择 `background` 或 `dark_background`，默认值分别为 `#f5f5f5` 和 `#000`。插件不会读取 `--layout-bg` 或 ConfigProvider token。
 
 ## Loading UI
 
